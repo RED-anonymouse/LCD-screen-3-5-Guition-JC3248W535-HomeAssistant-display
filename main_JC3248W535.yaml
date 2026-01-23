@@ -4,7 +4,7 @@ esphome:
   min_version: 2024.11.0
   project:
     name: "salon.lcd-salon"
-    version: "3.2.4" # FEATURE: Powrót do Home (60s), Idle (30s)
+    version: "3.3.2" # FIX: Naprawa przycisku Power (rozdzielenie labeli), Reorganizacja Nawigacji (Lewo:Dane, Środek:Home, Prawo:Switches)
 
   on_boot:
     priority: 600
@@ -26,8 +26,6 @@ logger:
 ota:
   - platform: esphome
 
-safe_mode:
-
 esp32:
   variant: esp32s3
   flash_size: 16MB
@@ -43,131 +41,14 @@ psram:
 preferences:
   flash_write_interval: 5min
 
-# ============================================================================
-# ZMIENNE GLOBALNE
-# ============================================================================
 globals:
   - id: current_page_idx
     type: int
-    restore_value: false
     initial_value: '0'
 
-# ============================================================================
-# MECHANIZM ODŚWIEŻANIA DANYCH
-# ============================================================================
-interval:
-  - interval: 1s
-    then:
-      - lambda: |-
-          lv_label_set_text(id(main_clock), id(ha_time).now().strftime("%H:%M").c_str());
-
-  - interval: 0.5s
-    then:
-      - lambda: |-
-          // --- STATUS BAR ---
-          lv_label_set_text(id(status_wifi), id(wifi_icon_state).state.c_str());
-          lv_label_set_text(id(status_wifi_p1), id(wifi_icon_state).state.c_str());
-          lv_label_set_text(id(status_wifi_p2), id(wifi_icon_state).state.c_str());
-          
-          lv_label_set_text(id(status_battery), id(battery_icon_state).state.c_str());
-          lv_label_set_text(id(status_battery_p1), id(battery_icon_state).state.c_str());
-          lv_label_set_text(id(status_battery_p2), id(battery_icon_state).state.c_str());
-
-          // --- NAWIGACJA (KOLORY) ---
-          int page = id(current_page_idx);
-          lv_color_t c_nav_active = lv_color_hex(0x0d70c1);
-          lv_color_t c_nav_inactive = lv_color_hex(0xFFFFFF);
-
-          lv_obj_set_style_text_color(id(nav_icon_0), (page == 0 ? c_nav_active : c_nav_inactive), 0);
-          lv_obj_set_style_text_color(id(nav_icon_1), (page == 1 ? c_nav_active : c_nav_inactive), 0);
-          lv_obj_set_style_text_color(id(nav_icon_2), (page == 2 ? c_nav_active : c_nav_inactive), 0);
-
-          // --- PRZYCISKI (Page 1) ---
-          lv_color_t c_row_off = lv_color_hex(0x2B374E);
-          lv_color_t c_row_on  = lv_color_hex(0x0B73C6);
-          lv_color_t c_btn_off = lv_color_hex(0x4C6594);
-          lv_color_t c_btn_on  = lv_color_hex(0x1663A0);
-          lv_color_t c_white    = lv_color_hex(0xFFFFFF);
-          lv_color_t c_icon_off = lv_color_hex(0xB4B8BF);
-
-          if (id(light_tv_state).state) {
-            lv_obj_set_style_bg_color(id(row_tv), c_row_on, 0);
-            lv_obj_set_style_bg_color(id(btn_tv), c_btn_on, 0);
-            lv_obj_set_style_text_color(id(icon_bulb_tv), c_white, 0);
-            lv_obj_set_style_text_color(id(lbl_tv_name), c_white, 0);
-            lv_label_set_text(id(lbl_btn_tv), "\U000F0409 Włącz");
-          } else {
-            lv_obj_set_style_bg_color(id(row_tv), c_row_off, 0);
-            lv_obj_set_style_bg_color(id(btn_tv), c_btn_off, 0);
-            lv_obj_set_style_text_color(id(icon_bulb_tv), c_icon_off, 0);
-            lv_obj_set_style_text_color(id(lbl_tv_name), c_white, 0);
-            lv_label_set_text(id(lbl_btn_tv), "\U000F0409 Włącz");
-          }
-
-          if (id(light_couch_state).state) {
-             lv_obj_set_style_bg_color(id(row_couch), c_row_on, 0);
-             lv_obj_set_style_bg_color(id(btn_couch), c_btn_on, 0);
-             lv_obj_set_style_text_color(id(icon_bulb_couch), c_white, 0);
-             lv_obj_set_style_text_color(id(lbl_couch_name), c_white, 0);
-             lv_label_set_text(id(lbl_btn_couch), "\U000F0409 Włącz");
-          } else {
-             lv_obj_set_style_bg_color(id(row_couch), c_row_off, 0);
-             lv_obj_set_style_bg_color(id(btn_couch), c_btn_off, 0);
-             lv_obj_set_style_text_color(id(icon_bulb_couch), c_icon_off, 0);
-             lv_obj_set_style_text_color(id(lbl_couch_name), c_white, 0);
-             lv_label_set_text(id(lbl_btn_couch), "\U000F0409 Włącz");
-          }
-          
-          lv_label_set_text(id(main_date), id(ha_time).now().strftime("%d.%m.%Y").c_str());
-          
-          if (id(sensor_temp_salon).has_state()) {
-            lv_label_set_text(id(label_temp_salon), str_sprintf("%.1f°C", id(sensor_temp_salon).state).c_str());
-          } else { lv_label_set_text(id(label_temp_salon), "-"); }
-
-          if (id(sensor_hum_salon).has_state()) {
-            lv_label_set_text(id(label_hum_salon), str_sprintf("%.0f%%", id(sensor_hum_salon).state).c_str());
-          } else { lv_label_set_text(id(label_hum_salon), "-"); }
-
-          if (id(sensor_temp_ext).has_state()) {
-            lv_label_set_text(id(label_temp_ext), str_sprintf("%.1f°C", id(sensor_temp_ext).state).c_str());
-          } else { lv_label_set_text(id(label_temp_ext), "-"); }
-
-          lv_label_set_text(id(weather_icon_main), id(weather_icon_current).state.c_str());
-
-          if (id(sensor_woda).has_state()) {
-            lv_label_set_text(id(val_water), str_sprintf("%.3f m³", id(sensor_woda).state).c_str());
-          } else { lv_label_set_text(id(val_water), "--- m³"); }
-
-          // PROGNOZA
-          lv_label_set_text(id(label_day_0), id(day_name_0).state.c_str());
-          lv_label_set_text(id(icon_day_0), id(icon_calculated_day_0).state.c_str());
-          if (id(temp_day_0).has_state() && id(temp_low_day_0).has_state()) {
-             lv_label_set_text(id(temp_day_0_label), str_sprintf("%.0f/%.0f", id(temp_day_0).state, id(temp_low_day_0).state).c_str());
-          } else { lv_label_set_text(id(temp_day_0_label), "-"); }
-
-          lv_label_set_text(id(label_day_1), id(day_name_1).state.c_str());
-          lv_label_set_text(id(icon_day_1), id(icon_calculated_day_1).state.c_str());
-          if (id(temp_day_1).has_state() && id(temp_low_day_1).has_state()) {
-             lv_label_set_text(id(temp_day_1_label), str_sprintf("%.0f/%.0f", id(temp_day_1).state, id(temp_low_day_1).state).c_str());
-          } else { lv_label_set_text(id(temp_day_1_label), "-"); }
-
-          lv_label_set_text(id(label_day_2), id(day_name_2).state.c_str());
-          lv_label_set_text(id(icon_day_2), id(icon_calculated_day_2).state.c_str());
-          if (id(temp_day_2).has_state() && id(temp_low_day_2).has_state()) {
-             lv_label_set_text(id(temp_day_2_label), str_sprintf("%.0f/%.0f", id(temp_day_2).state, id(temp_low_day_2).state).c_str());
-          } else { lv_label_set_text(id(temp_day_2_label), "-"); }
-
-          lv_label_set_text(id(label_day_3), id(day_name_3).state.c_str());
-          lv_label_set_text(id(icon_day_3), id(icon_calculated_day_3).state.c_str());
-          if (id(temp_day_3).has_state() && id(temp_low_day_3).has_state()) {
-             lv_label_set_text(id(temp_day_3_label), str_sprintf("%.0f/%.0f", id(temp_day_3).state, id(temp_low_day_3).state).c_str());
-          } else { lv_label_set_text(id(temp_day_3_label), "-"); }
-
-          lv_label_set_text(id(label_day_4), id(day_name_4).state.c_str());
-          lv_label_set_text(id(icon_day_4), id(icon_calculated_day_4).state.c_str());
-          if (id(temp_day_4).has_state() && id(temp_low_day_4).has_state()) {
-             lv_label_set_text(id(temp_day_4_label), str_sprintf("%.0f/%.0f", id(temp_day_4).state, id(temp_low_day_4).state).c_str());
-          } else { lv_label_set_text(id(temp_day_4_label), "-"); }
+time:
+  - platform: homeassistant
+    id: ha_time
 
 # ============================================================================
 # SENSORY
@@ -183,6 +64,12 @@ sensor:
     id: sensor_temp_ext
     entity_id: sensor.temperatura_zewnetrzna_temperature
   
+  - platform: homeassistant
+    id: sensor_woda
+    entity_id: sensor.wmbus_reader_v5_apator_water_meter_state
+    internal: true
+
+  # PROGNOZA
   - platform: homeassistant
     id: temp_day_0
     entity_id: sensor.weather_forecast_dom_high_temp_0
@@ -215,11 +102,6 @@ sensor:
     id: temp_low_day_4
     entity_id: sensor.weather_forecast_dom_low_temp_4
 
-  - platform: homeassistant
-    id: sensor_woda
-    entity_id: sensor.wmbus_reader_v5_apator_water_meter_state
-    internal: true
-
   - platform: adc
     pin: GPIO10
     id: internal_battery_voltage
@@ -243,10 +125,10 @@ sensor:
 binary_sensor:
   - platform: homeassistant
     id: light_tv_state
-    entity_id: light.lampka_pod_telewizorem
+    entity_id: light.salon_lampka_pod_telewizorem
   - platform: homeassistant
     id: light_couch_state
-    entity_id: light.lampka_przy_kanapie
+    entity_id: light.salon_lampka_przy_kanapie
   - platform: homeassistant
     id: gate_garage_state
     entity_id: switch.brama_garazowa
@@ -255,51 +137,36 @@ text_sensor:
   - platform: template
     id: day_name_0
     lambda: |-
-      auto time = id(ha_time).now();
-      if (!time.is_valid()) return {"-"};
-      char buf[16];
-      time.strftime(buf, sizeof(buf), "%a"); 
-      return {buf};
+      auto time = id(ha_time).now(); if (!time.is_valid()) return {"-"};
+      char buf[16]; time.strftime(buf, sizeof(buf), "%a"); return {buf};
     update_interval: 60s
   - platform: template
     id: day_name_1
     lambda: |-
-      auto time = id(ha_time).now();
-      if (!time.is_valid()) return {"-"};
+      auto time = id(ha_time).now(); if (!time.is_valid()) return {"-"};
       auto future = esphome::ESPTime::from_epoch_local(time.timestamp + 86400);
-      char buf[16];
-      future.strftime(buf, sizeof(buf), "%a");
-      return {buf};
+      char buf[16]; future.strftime(buf, sizeof(buf), "%a"); return {buf};
     update_interval: 60s
   - platform: template
     id: day_name_2
     lambda: |-
-      auto time = id(ha_time).now();
-      if (!time.is_valid()) return {"-"};
+      auto time = id(ha_time).now(); if (!time.is_valid()) return {"-"};
       auto future = esphome::ESPTime::from_epoch_local(time.timestamp + 172800);
-      char buf[16];
-      future.strftime(buf, sizeof(buf), "%a");
-      return {buf};
+      char buf[16]; future.strftime(buf, sizeof(buf), "%a"); return {buf};
     update_interval: 60s
   - platform: template
     id: day_name_3
     lambda: |-
-      auto time = id(ha_time).now();
-      if (!time.is_valid()) return {"-"};
+      auto time = id(ha_time).now(); if (!time.is_valid()) return {"-"};
       auto future = esphome::ESPTime::from_epoch_local(time.timestamp + 259200);
-      char buf[16];
-      future.strftime(buf, sizeof(buf), "%a");
-      return {buf};
+      char buf[16]; future.strftime(buf, sizeof(buf), "%a"); return {buf};
     update_interval: 60s
   - platform: template
     id: day_name_4
     lambda: |-
-      auto time = id(ha_time).now();
-      if (!time.is_valid()) return {"-"};
+      auto time = id(ha_time).now(); if (!time.is_valid()) return {"-"};
       auto future = esphome::ESPTime::from_epoch_local(time.timestamp + 345600);
-      char buf[16];
-      future.strftime(buf, sizeof(buf), "%a");
-      return {buf};
+      char buf[16]; future.strftime(buf, sizeof(buf), "%a"); return {buf};
     update_interval: 60s
 
   - platform: homeassistant
@@ -326,86 +193,67 @@ text_sensor:
       std::string s = id(condition_day_0).state;
       if (s == "clear-night" || s == "Clear-night") return {"\U000F0594"};
       if (s == "cloudy" || s == "Cloudy") return {"\U000F0590"};
-      if (s == "fog" || s == "Fog") return {"\U000F0591"};
-      if (s == "lightning" || s == "Lightning") return {"\U000F0593"};
       if (s == "partlycloudy" || s == "Partlycloudy") return {"\U000F0595"};
-      if (s == "pouring" || s == "Pouring") return {"\U000F0596"};
+      if (s == "sunny" || s == "Sunny") return {"\U000F0599"};
       if (s == "rainy" || s == "Rainy") return {"\U000F0597"};
       if (s == "snowy" || s == "Snowy") return {"\U000F0598"};
-      if (s == "sunny" || s == "Sunny") return {"\U000F0599"};
-      if (s == "windy" || s == "Windy") return {"\U000F059D"};
+      if (s == "fog" || s == "Fog") return {"\U000F0591"};
       return {"\U000F0599"};
-
   - platform: template
     id: icon_calculated_day_1
     update_interval: 10s
     lambda: |-
-      if (!id(condition_day_1).has_state()) return {""};
+      if (!id(condition_day_1).has_state()) return {""}; 
       std::string s = id(condition_day_1).state;
       if (s == "clear-night" || s == "Clear-night") return {"\U000F0594"};
       if (s == "cloudy" || s == "Cloudy") return {"\U000F0590"};
-      if (s == "fog" || s == "Fog") return {"\U000F0591"};
-      if (s == "lightning" || s == "Lightning") return {"\U000F0593"};
       if (s == "partlycloudy" || s == "Partlycloudy") return {"\U000F0595"};
-      if (s == "pouring" || s == "Pouring") return {"\U000F0596"};
+      if (s == "sunny" || s == "Sunny") return {"\U000F0599"};
       if (s == "rainy" || s == "Rainy") return {"\U000F0597"};
       if (s == "snowy" || s == "Snowy") return {"\U000F0598"};
-      if (s == "sunny" || s == "Sunny") return {"\U000F0599"};
-      if (s == "windy" || s == "Windy") return {"\U000F059D"};
+      if (s == "fog" || s == "Fog") return {"\U000F0591"};
       return {"\U000F0599"};
-  
   - platform: template
     id: icon_calculated_day_2
     update_interval: 10s
     lambda: |-
-      if (!id(condition_day_2).has_state()) return {""};
+      if (!id(condition_day_2).has_state()) return {""}; 
       std::string s = id(condition_day_2).state;
       if (s == "clear-night" || s == "Clear-night") return {"\U000F0594"};
       if (s == "cloudy" || s == "Cloudy") return {"\U000F0590"};
-      if (s == "fog" || s == "Fog") return {"\U000F0591"};
-      if (s == "lightning" || s == "Lightning") return {"\U000F0593"};
       if (s == "partlycloudy" || s == "Partlycloudy") return {"\U000F0595"};
-      if (s == "pouring" || s == "Pouring") return {"\U000F0596"};
+      if (s == "sunny" || s == "Sunny") return {"\U000F0599"};
       if (s == "rainy" || s == "Rainy") return {"\U000F0597"};
       if (s == "snowy" || s == "Snowy") return {"\U000F0598"};
-      if (s == "sunny" || s == "Sunny") return {"\U000F0599"};
-      if (s == "windy" || s == "Windy") return {"\U000F059D"};
+      if (s == "fog" || s == "Fog") return {"\U000F0591"};
       return {"\U000F0599"};
-
   - platform: template
     id: icon_calculated_day_3
     update_interval: 10s
     lambda: |-
-      if (!id(condition_day_3).has_state()) return {""};
+      if (!id(condition_day_3).has_state()) return {""}; 
       std::string s = id(condition_day_3).state;
       if (s == "clear-night" || s == "Clear-night") return {"\U000F0594"};
       if (s == "cloudy" || s == "Cloudy") return {"\U000F0590"};
-      if (s == "fog" || s == "Fog") return {"\U000F0591"};
-      if (s == "lightning" || s == "Lightning") return {"\U000F0593"};
       if (s == "partlycloudy" || s == "Partlycloudy") return {"\U000F0595"};
-      if (s == "pouring" || s == "Pouring") return {"\U000F0596"};
+      if (s == "sunny" || s == "Sunny") return {"\U000F0599"};
       if (s == "rainy" || s == "Rainy") return {"\U000F0597"};
       if (s == "snowy" || s == "Snowy") return {"\U000F0598"};
-      if (s == "sunny" || s == "Sunny") return {"\U000F0599"};
-      if (s == "windy" || s == "Windy") return {"\U000F059D"};
+      if (s == "fog" || s == "Fog") return {"\U000F0591"};
       return {"\U000F0599"};
-
   - platform: template
     id: icon_calculated_day_4
     update_interval: 10s
     lambda: |-
-      if (!id(condition_day_4).has_state()) return {""};
+      if (!id(condition_day_4).has_state()) return {""}; 
       std::string s = id(condition_day_4).state;
       if (s == "clear-night" || s == "Clear-night") return {"\U000F0594"};
       if (s == "cloudy" || s == "Cloudy") return {"\U000F0590"};
-      if (s == "fog" || s == "Fog") return {"\U000F0591"};
-      if (s == "lightning" || s == "Lightning") return {"\U000F0593"};
       if (s == "partlycloudy" || s == "Partlycloudy") return {"\U000F0595"};
-      if (s == "pouring" || s == "Pouring") return {"\U000F0596"};
+      if (s == "sunny" || s == "Sunny") return {"\U000F0599"};
       if (s == "rainy" || s == "Rainy") return {"\U000F0597"};
       if (s == "snowy" || s == "Snowy") return {"\U000F0598"};
-      if (s == "sunny" || s == "Sunny") return {"\U000F0599"};
-      if (s == "windy" || s == "Windy") return {"\U000F059D"};
+      if (s == "fog" || s == "Fog") return {"\U000F0591"};
       return {"\U000F0599"};
 
   - platform: homeassistant
@@ -420,15 +268,8 @@ text_sensor:
       std::string state = id(weather_condition).state;
       if (state == "clear-night") return {"\U000F0594"};
       if (state == "cloudy") return {"\U000F0590"};
-      if (state == "fog") return {"\U000F0591"};
-      if (state == "lightning") return {"\U000F0593"};
-      if (state == "partly-cloudy") return {"\U000F0595"};
-      if (state == "partlycloudy") return {"\U000F0595"};
-      if (state == "pouring") return {"\U000F0596"};
-      if (state == "rainy") return {"\U000F0597"};
-      if (state == "snowy") return {"\U000F0598"};
       if (state == "sunny") return {"\U000F0599"};
-      if (state == "windy") return {"\U000F059D"};
+      if (state == "partlycloudy") return {"\U000F0595"};
       return {"\U000F0599"};
 
   - platform: template
@@ -446,11 +287,8 @@ text_sensor:
     lambda: |-
       if (!id(internal_battery_voltage).has_state()) return {"\U000F0083"}; 
       float v = id(internal_battery_voltage).state;
-      if (v >= 4.5) return {"\U000F0A09"};
+      if (v > 6.0) return {"\U000F1C3B"}; 
       if (v >= 4.0) return {"\U000F0082"};
-      if (v >= 3.8) return {"\U000F0081"};
-      if (v >= 3.6) return {"\U000F0089"};
-      if (v >= 3.4) return {"\U000F008C"};
       return {"\U000F0083"};
 
 # ============================================================================
@@ -513,10 +351,6 @@ display:
     update_interval: 5s
     auto_clear_enabled: false
 
-time:
-  - platform: homeassistant
-    id: ha_time
-
 # ============================================================================
 # CZCIONKI
 # ============================================================================
@@ -565,48 +399,36 @@ font:
     size: 16
     glyphs: '0123456789., m³-'
   
-  # IKONY
   - file: materialdesignicons-webfont.ttf
     id: font_mdi_60
     size: 60
     glyphs: ["\U000F0594", "\U000F0590", "\U000F0591", "\U000F0593", "\U000F067E", "\U000F0595", "\U000F0596", "\U000F0597", "\U000F0598", "\U000F0599", "\U000F059D", "\U000F0335"]
+  
+  - file: materialdesignicons-webfont.ttf
+    id: font_mdi_32
+    size: 32
+    glyphs: ["\U000F02DC", "\U000F1B50", "\U000F1C2E"]
+
+  - file: materialdesignicons-webfont.ttf
+    id: font_mdi_20
+    size: 20
+    glyphs: ["\U000F05A9", "\U000F0083", "\U000F1534", "\U000F0928", "\U000F0922", "\U000F0925", "\U000F0082", "\U000F1C3B"]
+
   - file: materialdesignicons-webfont.ttf
     id: font_mdi_24
     size: 24
     glyphs: 
-      - "\U000F0594" # clear-night
-      - "\U000F0590" # cloudy
-      - "\U000F0591" # fog
-      - "\U000F0593" # lightning
-      - "\U000F067E" # lightning-rainy
-      - "\U000F0595" # partlycloudy
-      - "\U000F0596" # pouring
-      - "\U000F0597" # rainy
-      - "\U000F0598" # snowy
-      - "\U000F0599" # sunny
-      - "\U000F059D" # windy
-      - "\U000F05A9" # wifi
-      - "\U000F0083" # battery-alert
-      - "\U000F0141" # arrow-left
-      - "\U000F0142" # arrow-right
-      - "\U000F02DC" # home (DOM)
-      - "\U000F1534" # wifi-off
-      - "\U000F0928" # wifi-strength-4
-      - "\U000F0922" # wifi-strength-2
-      - "\U000F0925" # wifi-strength-3
-      - "\U000F0082" # battery-90
-      - "\U000F0089" # battery-50
-      - "\U000F0081" # battery-70
-      - "\U000F008C" # battery-20
-      - "\U000F0A09" # power-plug
-      - "\U000F0409" # power
-      - "\U000F0335" # lamp
-      - "\U000F10B1" # mdi-button-pointer
-      - "\U000F0FB6" # mdi-file-star-four-points-outline
+      - "\U000F0594"
+      - "\U000F0590"
+      - "\U000F0595"
+      - "\U000F0599"
+      - "\U000F0597"
+      - "\U000F0598"
+      - "\U000F0591"
+      - "\U000F0A09"
+      - "\U000F0335"
+      - "\U000F0425"
 
-# ============================================================================
-# KOLORY
-# ============================================================================
 color:
   - id: c_white
     hex: "FFFFFF"
@@ -633,39 +455,134 @@ color:
   - id: c_nav_active
     hex: "0d70c1"
 
-# ============================================================================
-# LVGL
-# ============================================================================
+interval:
+  - interval: 1s
+    then:
+      - lambda: |-
+          lv_label_set_text(id(main_clock), id(ha_time).now().strftime("%H:%M").c_str());
+
+  - interval: 0.5s
+    then:
+      - lambda: |-
+          lv_label_set_text(id(status_wifi), id(wifi_icon_state).state.c_str());
+          lv_label_set_text(id(status_wifi_p1), id(wifi_icon_state).state.c_str());
+          lv_label_set_text(id(status_wifi_p2), id(wifi_icon_state).state.c_str());
+          
+          lv_label_set_text(id(status_battery), id(battery_icon_state).state.c_str());
+          lv_label_set_text(id(status_battery_p1), id(battery_icon_state).state.c_str());
+          lv_label_set_text(id(status_battery_p2), id(battery_icon_state).state.c_str());
+
+          // LOGIKA NAWIGACJI (ZAKTUALIZOWANA)
+          int page = id(current_page_idx);
+          lv_color_t c_active = lv_color_hex(0x0d70c1);
+          lv_color_t c_inactive = lv_color_hex(0xFFFFFF);
+          
+          // nav_icon_left (Dane - Page 2)
+          lv_obj_set_style_text_color(id(nav_icon_left), (page == 2 ? c_active : c_inactive), 0);
+          
+          // nav_icon_center (Home - Page 0)
+          lv_obj_set_style_text_color(id(nav_icon_center), (page == 0 ? c_active : c_inactive), 0);
+          
+          // nav_icon_right (Switches - Page 1)
+          lv_obj_set_style_text_color(id(nav_icon_right), (page == 1 ? c_active : c_inactive), 0);
+
+          lv_color_t c_row_off = lv_color_hex(0x2B374E);
+          lv_color_t c_row_on  = lv_color_hex(0x0B73C6);
+          lv_color_t c_btn_off = lv_color_hex(0x4C6594);
+          lv_color_t c_btn_on  = lv_color_hex(0x1663A0);
+          lv_color_t c_white    = lv_color_hex(0xFFFFFF);
+          lv_color_t c_icon_off = lv_color_hex(0xB4B8BF);
+
+          // TV
+          if (id(light_tv_state).state) {
+            lv_obj_set_style_bg_color(id(row_tv), c_row_on, 0);
+            lv_obj_set_style_bg_color(id(btn_tv), c_btn_on, 0);
+            lv_obj_set_style_text_color(id(icon_bulb_tv), c_row_on, 0); 
+            lv_obj_set_style_text_color(id(lbl_tv_name), c_white, 0);
+          } else {
+            lv_obj_set_style_bg_color(id(row_tv), c_row_off, 0);
+            lv_obj_set_style_bg_color(id(btn_tv), c_btn_off, 0);
+            lv_obj_set_style_text_color(id(icon_bulb_tv), c_icon_off, 0);
+            lv_obj_set_style_text_color(id(lbl_tv_name), c_white, 0);
+          }
+
+          // KANAPA
+          if (id(light_couch_state).state) {
+             lv_obj_set_style_bg_color(id(row_couch), c_row_on, 0);
+             lv_obj_set_style_bg_color(id(btn_couch), c_btn_on, 0);
+             lv_obj_set_style_text_color(id(icon_bulb_couch), c_row_on, 0);
+             lv_obj_set_style_text_color(id(lbl_couch_name), c_white, 0);
+          } else {
+             lv_obj_set_style_bg_color(id(row_couch), c_row_off, 0);
+             lv_obj_set_style_bg_color(id(btn_couch), c_btn_off, 0);
+             lv_obj_set_style_text_color(id(icon_bulb_couch), c_icon_off, 0);
+             lv_obj_set_style_text_color(id(lbl_couch_name), c_white, 0);
+          }
+          
+          lv_label_set_text(id(main_date), id(ha_time).now().strftime("%d.%m.%Y").c_str());
+          
+          if (id(sensor_temp_salon).has_state()) lv_label_set_text(id(label_temp_salon), str_sprintf("%.1f°C", id(sensor_temp_salon).state).c_str());
+          if (id(sensor_hum_salon).has_state()) lv_label_set_text(id(label_hum_salon), str_sprintf("%.0f%%", id(sensor_hum_salon).state).c_str());
+          if (id(sensor_temp_ext).has_state()) lv_label_set_text(id(label_temp_ext), str_sprintf("%.1f°C", id(sensor_temp_ext).state).c_str());
+          lv_label_set_text(id(weather_icon_main), id(weather_icon_current).state.c_str());
+
+          if (id(sensor_woda).has_state()) lv_label_set_text(id(val_water), str_sprintf("%.3f m³", id(sensor_woda).state).c_str());
+
+          lv_label_set_text(id(label_day_0), id(day_name_0).state.c_str());
+          lv_label_set_text(id(icon_day_0), id(icon_calculated_day_0).state.c_str());
+          if (id(temp_day_0).has_state() && id(temp_low_day_0).has_state()) {
+             lv_label_set_text(id(temp_day_0_label), str_sprintf("%.0f/%.0f", id(temp_day_0).state, id(temp_low_day_0).state).c_str());
+          }
+          lv_label_set_text(id(label_day_1), id(day_name_1).state.c_str());
+          lv_label_set_text(id(icon_day_1), id(icon_calculated_day_1).state.c_str());
+          if (id(temp_day_1).has_state() && id(temp_low_day_1).has_state()) {
+             lv_label_set_text(id(temp_day_1_label), str_sprintf("%.0f/%.0f", id(temp_day_1).state, id(temp_low_day_1).state).c_str());
+          }
+          lv_label_set_text(id(label_day_2), id(day_name_2).state.c_str());
+          lv_label_set_text(id(icon_day_2), id(icon_calculated_day_2).state.c_str());
+          if (id(temp_day_2).has_state() && id(temp_low_day_2).has_state()) {
+             lv_label_set_text(id(temp_day_2_label), str_sprintf("%.0f/%.0f", id(temp_day_2).state, id(temp_low_day_2).state).c_str());
+          }
+          lv_label_set_text(id(label_day_3), id(day_name_3).state.c_str());
+          lv_label_set_text(id(icon_day_3), id(icon_calculated_day_3).state.c_str());
+          if (id(temp_day_3).has_state() && id(temp_low_day_3).has_state()) {
+             lv_label_set_text(id(temp_day_3_label), str_sprintf("%.0f/%.0f", id(temp_day_3).state, id(temp_low_day_3).state).c_str());
+          }
+          lv_label_set_text(id(label_day_4), id(day_name_4).state.c_str());
+          lv_label_set_text(id(icon_day_4), id(icon_calculated_day_4).state.c_str());
+          if (id(temp_day_4).has_state() && id(temp_low_day_4).has_state()) {
+             lv_label_set_text(id(temp_day_4_label), str_sprintf("%.0f/%.0f", id(temp_day_4).state, id(temp_low_day_4).state).c_str());
+          }
+
 lvgl:
   id: my_lvgl
   log_level: WARN
-  bg_color: c_white
+  bg_color: c_bg_main
   displays: my_display
   touchscreens: my_touchscreen
   
   on_idle:
-    # ŚCIEMNIANIE PO 30 SEKUNDACH
     - timeout: 30s
       then:
-        - lambda: |-
-            auto time = id(ha_time).now();
-            if (time.is_valid()) {
-              if (time.hour >= 23 || time.hour < 7) {
-                id(display_backlight).turn_on().set_brightness(0.15).perform();
-              } else {
-                id(display_backlight).turn_on().set_brightness(0.30).perform();
+        - light.turn_on:
+            id: display_backlight
+            transition_length: 1s
+            brightness: !lambda |-
+              auto time = id(ha_time).now();
+              if (time.is_valid() && (time.hour >= 23 || time.hour < 7)) {
+                return 0.15;
               }
-            } else {
-              id(display_backlight).turn_on().set_brightness(0.30).perform();
-            }
-
-    # POWRÓT DO HOME PO 60 SEKUNDACH
+              return 0.30;
+    
+    # INTELIGENTNY POWRÓT (tylko gdy nie jesteś na Home)
     - timeout: 60s
       then:
-        - lvgl.page.show: page_0
-        - globals.set:
-            id: current_page_idx
-            value: '0'
+        - if:
+            condition:
+              lambda: 'return id(current_page_idx) != 0;'
+            then:
+              - lvgl.page.show: page_0
+              - globals.set: {id: current_page_idx, value: '0'}
 
   pages:
     - id: page_0
@@ -679,24 +596,13 @@ lvgl:
             bg_color: c_bg_main
             bg_opa: COVER
             border_width: 0
-            radius: 0
+            outline_width: 0
+            pad_all: 0
             scrollbar_mode: "OFF"
-        - label:
-            id: status_wifi
-            x: 280
-            y: 5
-            text_font: font_mdi_24
-            text_color: c_white
-            align: TOP_LEFT
-            text: "-"
-        - label:
-            id: status_battery
-            x: 250
-            y: 5
-            text_font: font_mdi_24
-            text_color: c_white
-            align: TOP_LEFT
-            text: "-"
+        # --- Ikony Statusu (obniżone do y: 8) ---
+        - label: {id: status_wifi, x: 280, y: 8, text_font: font_mdi_20, text_color: c_white, align: TOP_LEFT, text: "-"}
+        - label: {id: status_battery, x: 250, y: 8, text_font: font_mdi_20, text_color: c_white, align: TOP_LEFT, text: "-"}
+        
         - obj:
             scrollable: false
             x: 10
@@ -706,22 +612,13 @@ lvgl:
             bg_color: c_bg_card
             radius: 20
             border_width: 0
+            outline_width: 0
+            pad_all: 0
             scrollbar_mode: "OFF"
             widgets:
-              - label:
-                  id: main_clock
-                  align: CENTER
-                  y: -12
-                  text_font: font_roboto_34
-                  text_color: c_white
-                  text: "00:00"
-              - label:
-                  id: main_date
-                  align: CENTER
-                  y: 18
-                  text_font: font_roboto_14
-                  text_color: c_white
-                  text: "01.01.2024"
+              - label: {id: main_clock, align: CENTER, y: -12, text_font: font_roboto_34, text_color: c_white, text: "00:00"}
+              - label: {id: main_date, align: CENTER, y: 18, text_font: font_roboto_14, text_color: c_white, text: "01.01.2024"}
+        
         - obj:
             scrollable: false
             x: 10
@@ -731,21 +628,13 @@ lvgl:
             bg_color: c_bg_card
             radius: 20
             border_width: 0
+            outline_width: 0
+            pad_all: 0
             scrollbar_mode: "OFF"
             widgets:
-              - label:
-                  align: TOP_MID
-                  y: 5
-                  text: "Temperatura"
-                  text_font: font_roboto_12
-                  text_color: c_white
-              - label:
-                  id: label_temp_salon
-                  align: CENTER
-                  y: 10
-                  text_font: font_roboto_34
-                  text_color: c_white
-                  text: "-"
+              - label: {align: TOP_MID, y: 10, text: "Temperatura", text_font: font_roboto_12, text_color: c_white}
+              - label: {id: label_temp_salon, align: CENTER, y: 10, text_font: font_roboto_34, text_color: c_white, text: "-"}
+        
         - obj:
             scrollable: false
             x: 165
@@ -755,21 +644,13 @@ lvgl:
             bg_color: c_bg_card
             radius: 20
             border_width: 0
+            outline_width: 0
+            pad_all: 0
             scrollbar_mode: "OFF"
             widgets:
-              - label:
-                  align: TOP_MID
-                  y: 5
-                  text: "Wilgotność"
-                  text_font: font_roboto_12
-                  text_color: c_white
-              - label:
-                  id: label_hum_salon
-                  align: CENTER
-                  y: 10
-                  text_font: font_roboto_34
-                  text_color: c_white
-                  text: "-"
+              - label: {align: TOP_MID, y: 10, text: "Wilgotność", text_font: font_roboto_12, text_color: c_white}
+              - label: {id: label_hum_salon, align: CENTER, y: 10, text_font: font_roboto_34, text_color: c_white, text: "-"}
+        
         - obj:
             scrollable: false
             x: 10
@@ -779,31 +660,14 @@ lvgl:
             bg_color: c_bg_card
             radius: 20
             border_width: 0
+            outline_width: 0
+            pad_all: 0
             scrollbar_mode: "OFF"
             widgets:
-              - label:
-                  id: weather_icon_main
-                  x: 35
-                  y: 3
-                  align: LEFT_MID
-                  text_font: font_mdi_60
-                  text_color: c_white
-                  text: "\U000F0599"
-              - label:
-                  x: 110
-                  y: -18
-                  align: LEFT_MID
-                  text: "Temperatura Zewnętrzna"
-                  text_font: font_roboto_12
-                  text_color: c_white
-              - label:
-                  id: label_temp_ext
-                  x: 110
-                  y: 12
-                  align: LEFT_MID
-                  text_font: font_roboto_28
-                  text_color: c_white
-                  text: "-"
+              - label: {id: weather_icon_main, x: 35, y: 3, align: LEFT_MID, text_font: font_mdi_60, text_color: c_white, text: "\U000F0599"}
+              - label: {x: 110, y: -18, align: LEFT_MID, text: "Temperatura Zewnętrzna", text_font: font_roboto_12, text_color: c_white}
+              - label: {id: label_temp_ext, x: 110, y: 12, align: LEFT_MID, text_font: font_roboto_28, text_color: c_white, text: "-"}
+        
         - obj:
             scrollable: false
             x: 10
@@ -813,75 +677,76 @@ lvgl:
             bg_color: c_bg_card
             radius: 20
             border_width: 0
+            outline_width: 0
+            pad_all: 0
             scrollbar_mode: "OFF"
+            layout:
+              type: flex
+              flex_flow: ROW
+              flex_align_main: SPACE_EVENLY
+              flex_align_cross: CENTER
+              pad_column: 0
             widgets:
               - obj:
                   scrollable: false
-                  width: 100%
+                  width: 60
                   height: 100%
                   bg_opa: 0%
                   border_width: 0
+                  outline_width: 0
                   pad_all: 0
-                  scrollbar_mode: "OFF"
-                  layout:
-                    type: flex
-                    flex_flow: ROW
-                    flex_align_main: SPACE_EVENLY
-                    flex_align_cross: CENTER
                   widgets:
-                    - obj: &forecast_day
-                        scrollable: false
-                        width: 50
-                        height: 100%
-                        bg_opa: 0%
-                        border_width: 0
-                        pad_all: 0
-                        widgets:
-                          - label:
-                              id: label_day_0
-                              align: TOP_MID
-                              y: 0 
-                              text_font: font_roboto_12
-                              text_color: c_white
-                              text: "-"
-                          - label:
-                              id: icon_day_0
-                              align: CENTER
-                              y: 0
-                              text_font: font_mdi_24
-                              text_color: c_white
-                              text: "-"
-                          - label:
-                              id: temp_day_0_label
-                              align: BOTTOM_MID
-                              y: -2
-                              text_font: font_roboto_12
-                              text_color: c_white
-                              text: "-"
-                    - obj:
-                        <<: *forecast_day
-                        widgets:
-                          - label: {id: label_day_1, align: TOP_MID, y: 0, text_font: font_roboto_12, text_color: c_white}
-                          - label: {id: icon_day_1, align: CENTER, y: 0, text_font: font_mdi_24, text_color: c_white}
-                          - label: {id: temp_day_1_label, align: BOTTOM_MID, y: -2, text_font: font_roboto_12, text_color: c_white}
-                    - obj:
-                        <<: *forecast_day
-                        widgets:
-                          - label: {id: label_day_2, align: TOP_MID, y: 0, text_font: font_roboto_12, text_color: c_white}
-                          - label: {id: icon_day_2, align: CENTER, y: 0, text_font: font_mdi_24, text_color: c_white}
-                          - label: {id: temp_day_2_label, align: BOTTOM_MID, y: -2, text_font: font_roboto_12, text_color: c_white}
-                    - obj:
-                        <<: *forecast_day
-                        widgets:
-                          - label: {id: label_day_3, align: TOP_MID, y: 0, text_font: font_roboto_12, text_color: c_white}
-                          - label: {id: icon_day_3, align: CENTER, y: 0, text_font: font_mdi_24, text_color: c_white}
-                          - label: {id: temp_day_3_label, align: BOTTOM_MID, y: -2, text_font: font_roboto_12, text_color: c_white}
-                    - obj:
-                        <<: *forecast_day
-                        widgets:
-                          - label: {id: label_day_4, align: TOP_MID, y: 0, text_font: font_roboto_12, text_color: c_white}
-                          - label: {id: icon_day_4, align: CENTER, y: 0, text_font: font_mdi_24, text_color: c_white}
-                          - label: {id: temp_day_4_label, align: BOTTOM_MID, y: -2, text_font: font_roboto_12, text_color: c_white}
+                    - label: {id: label_day_0, align: TOP_MID, y: 10, text_font: font_roboto_12, text_color: c_white, text: "-"}
+                    - label: {id: icon_day_0, align: CENTER, y: -2, text_font: font_mdi_24, text_color: c_white, text: "-"}
+                    - label: {id: temp_day_0_label, align: BOTTOM_MID, y: -10, text_font: font_roboto_12, text_color: c_white, text: "-"}
+              - obj:
+                  scrollable: false
+                  width: 60
+                  height: 100%
+                  bg_opa: 0%
+                  border_width: 0
+                  outline_width: 0
+                  pad_all: 0
+                  widgets:
+                    - label: {id: label_day_1, align: TOP_MID, y: 10, text_font: font_roboto_12, text_color: c_white, text: "-"}
+                    - label: {id: icon_day_1, align: CENTER, y: -2, text_font: font_mdi_24, text_color: c_white, text: "-"}
+                    - label: {id: temp_day_1_label, align: BOTTOM_MID, y: -10, text_font: font_roboto_12, text_color: c_white, text: "-"}
+              - obj:
+                  scrollable: false
+                  width: 60
+                  height: 100%
+                  bg_opa: 0%
+                  border_width: 0
+                  outline_width: 0
+                  pad_all: 0
+                  widgets:
+                    - label: {id: label_day_2, align: TOP_MID, y: 10, text_font: font_roboto_12, text_color: c_white, text: "-"}
+                    - label: {id: icon_day_2, align: CENTER, y: -2, text_font: font_mdi_24, text_color: c_white, text: "-"}
+                    - label: {id: temp_day_2_label, align: BOTTOM_MID, y: -10, text_font: font_roboto_12, text_color: c_white, text: "-"}
+              - obj:
+                  scrollable: false
+                  width: 60
+                  height: 100%
+                  bg_opa: 0%
+                  border_width: 0
+                  outline_width: 0
+                  pad_all: 0
+                  widgets:
+                    - label: {id: label_day_3, align: TOP_MID, y: 10, text_font: font_roboto_12, text_color: c_white, text: "-"}
+                    - label: {id: icon_day_3, align: CENTER, y: -2, text_font: font_mdi_24, text_color: c_white, text: "-"}
+                    - label: {id: temp_day_3_label, align: BOTTOM_MID, y: -10, text_font: font_roboto_12, text_color: c_white, text: "-"}
+              - obj:
+                  scrollable: false
+                  width: 60
+                  height: 100%
+                  bg_opa: 0%
+                  border_width: 0
+                  outline_width: 0
+                  pad_all: 0
+                  widgets:
+                    - label: {id: label_day_4, align: TOP_MID, y: 10, text_font: font_roboto_12, text_color: c_white, text: "-"}
+                    - label: {id: icon_day_4, align: CENTER, y: -2, text_font: font_mdi_24, text_color: c_white, text: "-"}
+                    - label: {id: temp_day_4_label, align: BOTTOM_MID, y: -10, text_font: font_roboto_12, text_color: c_white, text: "-"}
 
     - id: page_1
       widgets:
@@ -894,24 +759,12 @@ lvgl:
             bg_color: c_bg_main
             bg_opa: COVER
             border_width: 0
-            radius: 0
+            outline_width: 0
+            pad_all: 0
             scrollbar_mode: "OFF"
-        - label:
-            id: status_wifi_p1
-            x: 280
-            y: 5
-            text_font: font_mdi_24
-            text_color: c_white
-            align: TOP_LEFT
-            text: "-"
-        - label:
-            id: status_battery_p1
-            x: 250
-            y: 5
-            text_font: font_mdi_24
-            text_color: c_white
-            align: TOP_LEFT
-            text: "-"
+        - label: {id: status_wifi_p1, x: 280, y: 8, text_font: font_mdi_20, text_color: c_white, align: TOP_LEFT, text: "-"}
+        - label: {id: status_battery_p1, x: 250, y: 8, text_font: font_mdi_20, text_color: c_white, align: TOP_LEFT, text: "-"}
+        
         - obj:
             id: row_tv
             x: 10
@@ -920,6 +773,9 @@ lvgl:
             height: 50
             bg_color: c_row_off
             radius: 15
+            border_width: 0
+            outline_width: 0
+            pad_all: 0
             widgets:
               - obj:
                   x: 10
@@ -928,6 +784,9 @@ lvgl:
                   height: 40
                   bg_color: c_circle
                   radius: 20
+                  border_width: 0
+                  outline_width: 0
+                  scrollbar_mode: "OFF"
                   widgets:
                     - label: {id: icon_bulb_tv, align: CENTER, text: "\U000F0335", text_font: font_mdi_24, text_color: c_icon_off}
               - label: {id: lbl_tv_name, x: 60, y: 0, align: LEFT_MID, text: "Lampka TV", text_font: font_roboto_14, text_color: c_white}
@@ -939,12 +798,29 @@ lvgl:
                   height: 40
                   bg_color: c_btn_off
                   radius: 5
+                  border_width: 0
+                  shadow_width: 0
+                  outline_width: 0
                   on_click:
                      - homeassistant.service:
                         service: light.toggle
-                        data: { entity_id: light.lampka_pod_telewizorem }
+                        data:
+                          entity_id: light.salon_lampka_pod_telewizorem
                   widgets:
-                    - label: {id: lbl_btn_tv, align: CENTER, text: "\U000F0409 Włącz", text_font: font_roboto_12, text_color: c_white}
+                    # ROZDZIELENIE LABELI (IKONA + TEKST)
+                    - label:
+                        align: CENTER
+                        x: -23
+                        text: "\U000F0425" # Power Icon
+                        text_font: font_mdi_24
+                        text_color: c_white
+                    - label:
+                        align: CENTER
+                        x: 12
+                        text: "Włącz"
+                        text_font: font_roboto_12
+                        text_color: c_white
+
         - obj:
             id: row_couch
             x: 10
@@ -953,6 +829,9 @@ lvgl:
             height: 50
             bg_color: c_row_off
             radius: 15
+            border_width: 0
+            outline_width: 0
+            pad_all: 0
             widgets:
               - obj:
                   x: 10
@@ -961,6 +840,9 @@ lvgl:
                   height: 40
                   bg_color: c_circle
                   radius: 20
+                  border_width: 0
+                  outline_width: 0
+                  scrollbar_mode: "OFF"
                   widgets:
                     - label: {id: icon_bulb_couch, align: CENTER, text: "\U000F0335", text_font: font_mdi_24, text_color: c_icon_off}
               - label: {id: lbl_couch_name, x: 60, y: 0, align: LEFT_MID, text: "Lampka Kanapa", text_font: font_roboto_14, text_color: c_white}
@@ -971,12 +853,29 @@ lvgl:
                   width: 90
                   height: 40
                   bg_color: c_btn_off
+                  radius: 5
+                  border_width: 0
+                  shadow_width: 0
+                  outline_width: 0
                   on_click:
                      - homeassistant.service:
                         service: light.toggle
-                        data: { entity_id: light.lampka_przy_kanapie }
+                        data:
+                          entity_id: light.salon_lampka_przy_kanapie
                   widgets:
-                    - label: {id: lbl_btn_couch, align: CENTER, text: "\U000F0409 Włącz", text_font: font_roboto_12, text_color: c_white}
+                    # ROZDZIELENIE LABELI
+                    - label:
+                        align: CENTER
+                        x: -23
+                        text: "\U000F0425"
+                        text_font: font_mdi_24
+                        text_color: c_white
+                    - label:
+                        align: CENTER
+                        x: 12
+                        text: "Włącz"
+                        text_font: font_roboto_12
+                        text_color: c_white
 
     - id: page_2
       widgets:
@@ -988,9 +887,12 @@ lvgl:
             height: 480
             bg_color: c_bg_main
             bg_opa: COVER
+            border_width: 0
+            outline_width: 0
+            pad_all: 0
             scrollbar_mode: "OFF"
-        - label: {id: status_wifi_p2, x: 280, y: 5, text_font: font_mdi_24, text_color: c_white, align: TOP_LEFT, text: "-"}
-        - label: {id: status_battery_p2, x: 250, y: 5, text_font: font_mdi_24, text_color: c_white, align: TOP_LEFT, text: "-"}
+        - label: {id: status_wifi_p2, x: 280, y: 8, text_font: font_mdi_20, text_color: c_white, align: TOP_LEFT, text: "-"}
+        - label: {id: status_battery_p2, x: 250, y: 8, text_font: font_mdi_20, text_color: c_white, align: TOP_LEFT, text: "-"}
         - obj:
             id: table_container
             x: 10
@@ -999,12 +901,15 @@ lvgl:
             height: 230
             radius: 15
             bg_color: c_readings_bg
+            border_width: 0
+            outline_width: 0
+            pad_all: 0
             widgets:
-              - label: {x: 10, y: 10, text: "Wodomierz", text_font: font_roboto_14, text_color: c_white, align: TOP_LEFT}
-              - label: {id: val_water, x: -10, y: 10, text: "--- m³", text_font: font_roboto_700_14, text_color: c_white, align: TOP_RIGHT}
+              - label: {x: 10, y: 20, text: "Wodomierz", text_font: font_roboto_14, text_color: c_white, align: TOP_LEFT}
+              - label: {id: val_water, x: -10, y: 20, text: "--- m³", text_font: font_roboto_700_14, text_color: c_white, align: TOP_RIGHT}
               - line:
                   x: 40
-                  y: 40
+                  y: 45
                   points: ["0, 0", "220, 0"]
                   line_width: 1
                   line_color: c_line_sep
@@ -1019,36 +924,56 @@ lvgl:
           height: 60
           bg_color: c_bg_main
           bg_opa: COVER
+          border_width: 0
+          outline_width: 0
+          pad_all: 0
           layout:
             type: flex
             flex_flow: ROW
             flex_align_main: SPACE_EVENLY
             flex_align_cross: CENTER
           widgets:
+            # LEWO: Dane (Strona 2)
             - button:
                 width: 80
                 height: 50
                 bg_opa: 0%
-                on_click:
-                  - globals.set: {id: current_page_idx, value: '0'}
-                  - lvgl.page.show: page_0
-                widgets:
-                  - label: {id: nav_icon_0, align: CENTER, text: "\U000F02DC", text_font: font_mdi_24, text_color: c_white}
-            - button:
-                width: 80
-                height: 50
-                bg_opa: 0%
-                on_click:
-                  - globals.set: {id: current_page_idx, value: '1'}
-                  - lvgl.page.show: page_1
-                widgets:
-                  - label: {id: nav_icon_1, align: CENTER, text: "\U000F10B1", text_font: font_mdi_24, text_color: c_white}
-            - button:
-                width: 80
-                height: 50
-                bg_opa: 0%
+                border_width: 0
+                outline_width: 0
+                shadow_width: 0
+                y: 5
                 on_click:
                   - globals.set: {id: current_page_idx, value: '2'}
                   - lvgl.page.show: page_2
                 widgets:
-                  - label: {id: nav_icon_2, align: CENTER, text: "\U000F0FB6", text_font: font_mdi_24, text_color: c_white}
+                  - label: {id: nav_icon_left, align: CENTER, y: 10, text: "\U000F1C2E", text_font: font_mdi_32, text_color: c_white}
+            
+            # ŚRODEK: Home (Strona 0)
+            - button:
+                width: 80
+                height: 50
+                bg_opa: 0%
+                border_width: 0
+                outline_width: 0
+                shadow_width: 0
+                y: 5
+                on_click:
+                  - globals.set: {id: current_page_idx, value: '0'}
+                  - lvgl.page.show: page_0
+                widgets:
+                  - label: {id: nav_icon_center, align: CENTER, y: 10, text: "\U000F02DC", text_font: font_mdi_32, text_color: c_white}
+            
+            # PRAWO: Przyciski (Strona 1)
+            - button:
+                width: 80
+                height: 50
+                bg_opa: 0%
+                border_width: 0
+                outline_width: 0
+                shadow_width: 0
+                y: 5
+                on_click:
+                  - globals.set: {id: current_page_idx, value: '1'}
+                  - lvgl.page.show: page_1
+                widgets:
+                  - label: {id: nav_icon_right, align: CENTER, y: 10, text: "\U000F1B50", text_font: font_mdi_32, text_color: c_white}
