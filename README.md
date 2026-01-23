@@ -3,8 +3,12 @@
 
 There are many more or less complex designs for this display. However, I wanted a simple screen showing the temperature and humidity of the room it is located in, the outside temperature, the forecast, and the time. I couldn't find anything like that, so I created this design. In addition, I added pages with light switches for a given room and a list of data from several indicators. 
 
+Backlight management has been added to the logic. During the day, the backlight is set to 30%, and at night it automatically switches to 15%. When interaction is detected, it will brighten to 100%. Also, switching pages when there is no interaction will return to the initial state, i.e. to the temperature page.  
+
 ## App screenshots
-In progress
+<img src="https://github.com/user-attachments/assets/e580e1c0-858c-4c4d-9b5e-483f64693d2c" width="300">
+<img src="https://github.com/user-attachments/assets/05ee25ea-9151-4c15-908f-950be87b4b4a" width="300">
+<img src="https://github.com/user-attachments/assets/0e92f17f-f48f-451a-94d7-0c84518f44ff" width="300">
 
 ## Case screenshots
 <img src="https://github.com/user-attachments/assets/6758cd0f-71b5-47a5-a005-a55db29a830f" width="300">
