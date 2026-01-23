@@ -4,7 +4,7 @@ esphome:
   min_version: 2024.11.0
   project:
     name: "salon.lcd-salon"
-    version: "3.3.2" # FIX: Naprawa przycisku Power (rozdzielenie labeli), Reorganizacja Nawigacji (Lewo:Dane, Środek:Home, Prawo:Switches)
+    version: "3.3.2"
 
   on_boot:
     priority: 600
@@ -977,3 +977,4 @@ lvgl:
                   - lvgl.page.show: page_1
                 widgets:
                   - label: {id: nav_icon_right, align: CENTER, y: 10, text: "\U000F1B50", text_font: font_mdi_32, text_color: c_white}
+
