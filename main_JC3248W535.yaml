@@ -50,7 +50,7 @@ time:
   - platform: homeassistant
     id: ha_time
     on_time:
-      # O 23:00 -> Przygaś do 15% (tryb nocny)
+      # NIGHT MODE
       - seconds: 0
         minutes: 0
         hours: 23
@@ -59,7 +59,7 @@ time:
               id: display_backlight
               brightness: 15%
               transition_length: 5s
-      # O 07:00 -> Rozjaśnij do 30% (tryb dzienny)
+      # DAY MODE
       - seconds: 0
         minutes: 0
         hours: 7
@@ -990,3 +990,4 @@ lvgl:
                   - lvgl.page.show: page_1
                 widgets:
                   - label: {id: nav_icon_right, align: CENTER, y: 10, text: "\U000F1B50", text_font: font_mdi_32, text_color: c_white}
+
