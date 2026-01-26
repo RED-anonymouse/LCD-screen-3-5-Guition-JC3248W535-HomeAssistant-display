@@ -14,8 +14,90 @@ Backlight management has been added to the logic. During the day, the backlight 
 <img src="https://github.com/user-attachments/assets/6758cd0f-71b5-47a5-a005-a55db29a830f" width="300">
 <img src="https://github.com/user-attachments/assets/3cbbee5b-55ad-44cd-8ec5-7ab7fd986809" width="300">
 
+# Instal
+Pamiętaj o pobraniu czcionki z ikonkami i dodanie jej do folderu ESPhome na swoim Home assistant <br> (https://github.com/Templarian/MaterialDesign-Webfont/blob/master/fonts/materialdesignicons-webfont.ttf),<br> utworzeniu dodatkowych encji dla każdego dnia prognozy pogody:
+`template:
+   # --- FORECAST (TRIGGER) ---
+  - trigger:
+      - trigger: time_pattern
+        minutes: "/30"  # Odświeżanie co 30 minut
+      - trigger: homeassistant
+        event: start    # Oraz przy starcie systemu
+    action:
+      - action: weather.get_forecasts
+        target:
+          entity_id: weather.forecast_dom
+        data:
+          type: daily
+        response_variable: w_forecast
+    sensor:
+      # --- DAY 0 ---
+      - name: "Weather Forecast Dom High Temp 0"
+        unique_id: weather_forecast_dom_high_temp_0
+        state: "{{ w_forecast['weather.forecast_dom'].forecast[0].temperature }}"
+        unit_of_measurement: "°C"
+      - name: "Weather Forecast Dom Low Temp 0"
+        unique_id: weather_forecast_dom_low_temp_0
+        state: "{{ w_forecast['weather.forecast_dom'].forecast[0].templow }}"
+        unit_of_measurement: "°C"
+      - name: "Weather Forecast Dom Condition 0"
+        unique_id: weather_forecast_dom_condition_0
+        state: "{{ w_forecast['weather.forecast_dom'].forecast[0].condition }}"
+
+      # --- DAY 1 ---
+      - name: "Weather Forecast Dom High Temp 1"
+        unique_id: weather_forecast_dom_high_temp_1
+        state: "{{ w_forecast['weather.forecast_dom'].forecast[1].temperature }}"
+        unit_of_measurement: "°C"
+      - name: "Weather Forecast Dom Low Temp 1"
+        unique_id: weather_forecast_dom_low_temp_1
+        state: "{{ w_forecast['weather.forecast_dom'].forecast[1].templow }}"
+        unit_of_measurement: "°C"
+      - name: "Weather Forecast Dom Condition 1"
+        unique_id: weather_forecast_dom_condition_1
+        state: "{{ w_forecast['weather.forecast_dom'].forecast[1].condition }}"
+
+      # --- DAY 2 ---
+      - name: "Weather Forecast Dom High Temp 2"
+        unique_id: weather_forecast_dom_high_temp_2
+        state: "{{ w_forecast['weather.forecast_dom'].forecast[2].temperature }}"
+        unit_of_measurement: "°C"
+      - name: "Weather Forecast Dom Low Temp 2"
+        unique_id: weather_forecast_dom_low_temp_2
+        state: "{{ w_forecast['weather.forecast_dom'].forecast[2].templow }}"
+        unit_of_measurement: "°C"
+      - name: "Weather Forecast Dom Condition 2"
+        unique_id: weather_forecast_dom_condition_2
+        state: "{{ w_forecast['weather.forecast_dom'].forecast[2].condition }}"
+
+      # --- DAY 3 ---
+      - name: "Weather Forecast Dom High Temp 3"
+        unique_id: weather_forecast_dom_high_temp_3
+        state: "{{ w_forecast['weather.forecast_dom'].forecast[3].temperature }}"
+        unit_of_measurement: "°C"
+      - name: "Weather Forecast Dom Low Temp 3"
+        unique_id: weather_forecast_dom_low_temp_3
+        state: "{{ w_forecast['weather.forecast_dom'].forecast[3].templow }}"
+        unit_of_measurement: "°C"
+      - name: "Weather Forecast Dom Condition 3"
+        unique_id: weather_forecast_dom_condition_3
+        state: "{{ w_forecast['weather.forecast_dom'].forecast[3].condition }}"
+
+      # --- DAY 4 ---
+      - name: "Weather Forecast Dom High Temp 4"
+        unique_id: weather_forecast_dom_high_temp_4
+        state: "{{ w_forecast['weather.forecast_dom'].forecast[4].temperature }}"
+        unit_of_measurement: "°C"
+      - name: "Weather Forecast Dom Low Temp 4"
+        unique_id: weather_forecast_dom_low_temp_4
+        state: "{{ w_forecast['weather.forecast_dom'].forecast[4].templow }}"
+        unit_of_measurement: "°C"
+      - name: "Weather Forecast Dom Condition 4"
+        unique_id: weather_forecast_dom_condition_4
+        state: "{{ w_forecast['weather.forecast_dom'].forecast[4].condition }}"`
+
 ## Files for printing the casing
-https://drive.google.com/file/d/1Q2JvgJPOE6jzsvzelRSTnS5tt993zZ0X/view?usp=drive_link
+https://drive.google.com/file/d/1Q2JvgJPOE6jzsvzelRSTnS5tt993zZ0X/view?usp=drive_link <br>
 https://drive.google.com/file/d/1GalZ0HC4w-Q2IZYL-O6ipnsnNJTMi7es/view?usp=drive_link
 
 ## Badges
