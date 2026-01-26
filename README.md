@@ -15,7 +15,7 @@ Backlight management has been added to the logic. During the day, the backlight 
 <img src="https://github.com/user-attachments/assets/3cbbee5b-55ad-44cd-8ec5-7ab7fd986809" width="300">
 
 # Instal
-Remember to download the font with icons and add it to the ESPhome folder on your Home Assistant <br> (https://github.com/Templarian/MaterialDesign-Webfont/blob/master/fonts/materialdesignicons-webfont.ttf),<br> and create additional entities for each day of the weather forecast. The next step will be to change all the entities that you will use on your screen.
+Remember to download the font with icons and add it to the ESPhome folder on your Home Assistant <br> (https://github.com/Templarian/MaterialDesign-Webfont/blob/master/fonts/materialdesignicons-webfont.ttf),<br> and create additional entities for each day of the weather forecast.
 ```
 template:
    # --- FORECAST (TRIGGER) ---
@@ -97,6 +97,7 @@ template:
         unique_id: weather_forecast_dom_condition_4
         state: "{{ w_forecast['weather.forecast_dom'].forecast[4].condition }}"
 ```
+The next step will be to change all the entities that you will use on your screen.
 
 ## Files for printing the casing
 https://drive.google.com/file/d/1Q2JvgJPOE6jzsvzelRSTnS5tt993zZ0X/view?usp=drive_link <br>
