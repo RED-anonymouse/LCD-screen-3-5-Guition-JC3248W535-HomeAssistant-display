@@ -49,9 +49,28 @@ globals:
 time:
   - platform: homeassistant
     id: ha_time
+    on_time:
+      # O 23:00 -> Przygaś do 15% (tryb nocny)
+      - seconds: 0
+        minutes: 0
+        hours: 23
+        then:
+          - light.turn_on:
+              id: display_backlight
+              brightness: 15%
+              transition_length: 5s
+      # O 07:00 -> Rozjaśnij do 30% (tryb dzienny)
+      - seconds: 0
+        minutes: 0
+        hours: 7
+        then:
+          - light.turn_on:
+              id: display_backlight
+              brightness: 30%
+              transition_length: 5s
 
 # ============================================================================
-# SENSORY
+# SENSORS
 # ============================================================================
 sensor:
   - platform: homeassistant
@@ -69,7 +88,7 @@ sensor:
     entity_id: sensor.wmbus_reader_v5_apator_water_meter_state
     internal: true
 
-  # PROGNOZA
+  # FORECAST
   - platform: homeassistant
     id: temp_day_0
     entity_id: sensor.weather_forecast_dom_high_temp_0
@@ -292,7 +311,7 @@ text_sensor:
       return {"\U000F0083"};
 
 # ============================================================================
-# SPRZĘT
+# HARDWARE
 # ============================================================================
 spi:
   - id: qspi_bus
@@ -352,7 +371,7 @@ display:
     auto_clear_enabled: false
 
 # ============================================================================
-# CZCIONKI
+# FONTS
 # ============================================================================
 font:
   - file: "gfonts://Roboto"
@@ -574,7 +593,6 @@ lvgl:
               }
               return 0.30;
     
-    # INTELIGENTNY POWRÓT (tylko gdy nie jesteś na Home)
     - timeout: 60s
       then:
         - if:
@@ -599,7 +617,7 @@ lvgl:
             outline_width: 0
             pad_all: 0
             scrollbar_mode: "OFF"
-        # --- Ikony Statusu (obniżone do y: 8) ---
+
         - label: {id: status_wifi, x: 280, y: 8, text_font: font_mdi_20, text_color: c_white, align: TOP_LEFT, text: "-"}
         - label: {id: status_battery, x: 250, y: 8, text_font: font_mdi_20, text_color: c_white, align: TOP_LEFT, text: "-"}
         
@@ -807,7 +825,6 @@ lvgl:
                         data:
                           entity_id: light.salon_lampka_pod_telewizorem
                   widgets:
-                    # ROZDZIELENIE LABELI (IKONA + TEKST)
                     - label:
                         align: CENTER
                         x: -23
@@ -863,7 +880,6 @@ lvgl:
                         data:
                           entity_id: light.salon_lampka_przy_kanapie
                   widgets:
-                    # ROZDZIELENIE LABELI
                     - label:
                         align: CENTER
                         x: -23
@@ -933,7 +949,6 @@ lvgl:
             flex_align_main: SPACE_EVENLY
             flex_align_cross: CENTER
           widgets:
-            # LEWO: Dane (Strona 2)
             - button:
                 width: 80
                 height: 50
@@ -948,7 +963,6 @@ lvgl:
                 widgets:
                   - label: {id: nav_icon_left, align: CENTER, y: 10, text: "\U000F1C2E", text_font: font_mdi_32, text_color: c_white}
             
-            # ŚRODEK: Home (Strona 0)
             - button:
                 width: 80
                 height: 50
@@ -963,7 +977,6 @@ lvgl:
                 widgets:
                   - label: {id: nav_icon_center, align: CENTER, y: 10, text: "\U000F02DC", text_font: font_mdi_32, text_color: c_white}
             
-            # PRAWO: Przyciski (Strona 1)
             - button:
                 width: 80
                 height: 50
@@ -977,4 +990,3 @@ lvgl:
                   - lvgl.page.show: page_1
                 widgets:
                   - label: {id: nav_icon_right, align: CENTER, y: 10, text: "\U000F1B50", text_font: font_mdi_32, text_color: c_white}
-
