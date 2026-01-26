@@ -15,8 +15,9 @@ Backlight management has been added to the logic. During the day, the backlight 
 <img src="https://github.com/user-attachments/assets/3cbbee5b-55ad-44cd-8ec5-7ab7fd986809" width="300">
 
 # Instal
-Pamiętaj o pobraniu czcionki z ikonkami i dodanie jej do folderu ESPhome na swoim Home assistant <br> (https://github.com/Templarian/MaterialDesign-Webfont/blob/master/fonts/materialdesignicons-webfont.ttf),<br> utworzeniu dodatkowych encji dla każdego dnia prognozy pogody:
-`template:
+Remember to download the font with icons and add it to the ESPhome folder on your Home Assistant <br> (https://github.com/Templarian/MaterialDesign-Webfont/blob/master/fonts/materialdesignicons-webfont.ttf),<br> and create additional entities for each day of the weather forecast. Kolejnym etapem będzie zmiana wszystkich encji które będziesz wykorzystywać na swoim ekranie.
+```
+template:
    # --- FORECAST (TRIGGER) ---
   - trigger:
       - trigger: time_pattern
@@ -94,7 +95,8 @@ Pamiętaj o pobraniu czcionki z ikonkami i dodanie jej do folderu ESPhome na swo
         unit_of_measurement: "°C"
       - name: "Weather Forecast Dom Condition 4"
         unique_id: weather_forecast_dom_condition_4
-        state: "{{ w_forecast['weather.forecast_dom'].forecast[4].condition }}"`
+        state: "{{ w_forecast['weather.forecast_dom'].forecast[4].condition }}"
+```
 
 ## Files for printing the casing
 https://drive.google.com/file/d/1Q2JvgJPOE6jzsvzelRSTnS5tt993zZ0X/view?usp=drive_link <br>
