@@ -903,7 +903,7 @@ lvgl:
             x: 10
             y: 50
             width: 300
-            height: 230
+            height: 360
             radius: 15
             bg_color: c_readings_bg
             border_width: 0
@@ -989,4 +989,5 @@ lvgl:
                   - lvgl.page.show: page_1
                 widgets:
                   - label: {id: nav_icon_right, align: CENTER, y: 10, text: "\U000F1B50", text_font: font_mdi_32, text_color: c_white}
+
 
