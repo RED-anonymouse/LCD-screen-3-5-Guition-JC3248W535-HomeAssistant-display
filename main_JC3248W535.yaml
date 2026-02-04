@@ -4,7 +4,7 @@ esphome:
   min_version: 2024.11.0
   project:
     name: "salon.lcd-salon"
-    version: "3.3.2"
+    version: "3.3.4"
 
   on_boot:
     priority: 600
@@ -50,7 +50,7 @@ time:
   - platform: homeassistant
     id: ha_time
     on_time:
-      # NIGHT MODE
+      # BACKLIGHT night mode - 15%
       - seconds: 0
         minutes: 0
         hours: 23
@@ -59,7 +59,7 @@ time:
               id: display_backlight
               brightness: 15%
               transition_length: 5s
-      # DAY MODE
+      # BACLIGHT - 30%
       - seconds: 0
         minutes: 0
         hours: 7
@@ -70,7 +70,7 @@ time:
               transition_length: 5s
 
 # ============================================================================
-# SENSORS
+# SSENSORS
 # ============================================================================
 sensor:
   - platform: homeassistant
@@ -82,10 +82,14 @@ sensor:
   - platform: homeassistant
     id: sensor_temp_ext
     entity_id: sensor.temperatura_zewnetrzna_temperature
-  
+  # WATER
   - platform: homeassistant
     id: sensor_woda
     entity_id: sensor.wmbus_reader_v5_apator_water_meter_state
+    internal: true
+  - platform: homeassistant
+    id: sensor_woda_mc
+    entity_id: sensor.zuzycie_wody_miesiecznie
     internal: true
 
   # FORECAST
@@ -104,7 +108,6 @@ sensor:
   - platform: homeassistant
     id: temp_day_4
     entity_id: sensor.weather_forecast_dom_high_temp_4
-
   - platform: homeassistant
     id: temp_low_day_0
     entity_id: sensor.weather_forecast_dom_low_temp_0
@@ -120,19 +123,7 @@ sensor:
   - platform: homeassistant
     id: temp_low_day_4
     entity_id: sensor.weather_forecast_dom_low_temp_4
-
-  - platform: adc
-    pin: GPIO10
-    id: internal_battery_voltage
-    name: "Internal Battery"
-    update_interval: 60s
-    attenuation: 12db
-    filters:
-      - multiply: 2.0
-    on_value:
-      then:
-        - component.update: battery_icon_state
-
+    
   - platform: wifi_signal
     id: wifi_signal_dbm
     name: "WiFi Signal"
@@ -148,9 +139,6 @@ binary_sensor:
   - platform: homeassistant
     id: light_couch_state
     entity_id: light.salon_lampka_przy_kanapie
-  - platform: homeassistant
-    id: gate_garage_state
-    entity_id: switch.brama_garazowa
 
 text_sensor:
   - platform: template
@@ -208,7 +196,7 @@ text_sensor:
     id: icon_calculated_day_0
     update_interval: 10s
     lambda: |-
-      if (!id(condition_day_0).has_state()) return {""}; 
+      if (!id(condition_day_0).has_state()) return {""};
       std::string s = id(condition_day_0).state;
       if (s == "clear-night" || s == "Clear-night") return {"\U000F0594"};
       if (s == "cloudy" || s == "Cloudy") return {"\U000F0590"};
@@ -222,7 +210,7 @@ text_sensor:
     id: icon_calculated_day_1
     update_interval: 10s
     lambda: |-
-      if (!id(condition_day_1).has_state()) return {""}; 
+      if (!id(condition_day_1).has_state()) return {""};
       std::string s = id(condition_day_1).state;
       if (s == "clear-night" || s == "Clear-night") return {"\U000F0594"};
       if (s == "cloudy" || s == "Cloudy") return {"\U000F0590"};
@@ -236,7 +224,7 @@ text_sensor:
     id: icon_calculated_day_2
     update_interval: 10s
     lambda: |-
-      if (!id(condition_day_2).has_state()) return {""}; 
+      if (!id(condition_day_2).has_state()) return {""};
       std::string s = id(condition_day_2).state;
       if (s == "clear-night" || s == "Clear-night") return {"\U000F0594"};
       if (s == "cloudy" || s == "Cloudy") return {"\U000F0590"};
@@ -250,7 +238,7 @@ text_sensor:
     id: icon_calculated_day_3
     update_interval: 10s
     lambda: |-
-      if (!id(condition_day_3).has_state()) return {""}; 
+      if (!id(condition_day_3).has_state()) return {""};
       std::string s = id(condition_day_3).state;
       if (s == "clear-night" || s == "Clear-night") return {"\U000F0594"};
       if (s == "cloudy" || s == "Cloudy") return {"\U000F0590"};
@@ -264,7 +252,7 @@ text_sensor:
     id: icon_calculated_day_4
     update_interval: 10s
     lambda: |-
-      if (!id(condition_day_4).has_state()) return {""}; 
+      if (!id(condition_day_4).has_state()) return {""};
       std::string s = id(condition_day_4).state;
       if (s == "clear-night" || s == "Clear-night") return {"\U000F0594"};
       if (s == "cloudy" || s == "Cloudy") return {"\U000F0590"};
@@ -278,7 +266,7 @@ text_sensor:
   - platform: homeassistant
     id: weather_condition
     entity_id: weather.forecast_dom
-  
+ 
   - platform: template
     id: weather_icon_current
     update_interval: 60s
@@ -295,20 +283,11 @@ text_sensor:
     id: wifi_icon_state
     update_interval: 10s
     lambda: |-
-      if (!id(wifi_signal_dbm).has_state()) return {"\U000F0925"}; 
+      if (!id(wifi_signal_dbm).has_state()) return {"\U000F0925"};
       if (id(wifi_signal_dbm).state > -60) return {"\U000F0928"};
       if (id(wifi_signal_dbm).state > -80) return {"\U000F0922"};
       return {"\U000F0925"};
 
-  - platform: template
-    id: battery_icon_state
-    update_interval: 60s
-    lambda: |-
-      if (!id(internal_battery_voltage).has_state()) return {"\U000F0083"}; 
-      float v = id(internal_battery_voltage).state;
-      if (v > 6.0) return {"\U000F1C3B"}; 
-      if (v >= 4.0) return {"\U000F0082"};
-      return {"\U000F0083"};
 
 # ============================================================================
 # HARDWARE
@@ -417,12 +396,12 @@ font:
     id: font_roboto_700_16
     size: 16
     glyphs: '0123456789., m³-'
-  
+ 
   - file: materialdesignicons-webfont.ttf
     id: font_mdi_60
     size: 60
     glyphs: ["\U000F0594", "\U000F0590", "\U000F0591", "\U000F0593", "\U000F067E", "\U000F0595", "\U000F0596", "\U000F0597", "\U000F0598", "\U000F0599", "\U000F059D", "\U000F0335"]
-  
+ 
   - file: materialdesignicons-webfont.ttf
     id: font_mdi_32
     size: 32
@@ -431,12 +410,17 @@ font:
   - file: materialdesignicons-webfont.ttf
     id: font_mdi_20
     size: 20
-    glyphs: ["\U000F05A9", "\U000F0083", "\U000F1534", "\U000F0928", "\U000F0922", "\U000F0925", "\U000F0082", "\U000F1C3B"]
+    glyphs:
+      - "\U000F05A9" # WiFi
+      - "\U000F1534" # WiFi off
+      - "\U000F0928" # WiFi high
+      - "\U000F0922" # WiFi med
+      - "\U000F0925" # WiFi low
 
   - file: materialdesignicons-webfont.ttf
     id: font_mdi_24
     size: 24
-    glyphs: 
+    glyphs:
       - "\U000F0594"
       - "\U000F0590"
       - "\U000F0595"
@@ -486,22 +470,18 @@ interval:
           lv_label_set_text(id(status_wifi), id(wifi_icon_state).state.c_str());
           lv_label_set_text(id(status_wifi_p1), id(wifi_icon_state).state.c_str());
           lv_label_set_text(id(status_wifi_p2), id(wifi_icon_state).state.c_str());
-          
-          lv_label_set_text(id(status_battery), id(battery_icon_state).state.c_str());
-          lv_label_set_text(id(status_battery_p1), id(battery_icon_state).state.c_str());
-          lv_label_set_text(id(status_battery_p2), id(battery_icon_state).state.c_str());
 
-          // LOGIKA NAWIGACJI (ZAKTUALIZOWANA)
+          // UI NAVIGATION
           int page = id(current_page_idx);
           lv_color_t c_active = lv_color_hex(0x0d70c1);
           lv_color_t c_inactive = lv_color_hex(0xFFFFFF);
-          
+         
           // nav_icon_left (Dane - Page 2)
           lv_obj_set_style_text_color(id(nav_icon_left), (page == 2 ? c_active : c_inactive), 0);
-          
+         
           // nav_icon_center (Home - Page 0)
           lv_obj_set_style_text_color(id(nav_icon_center), (page == 0 ? c_active : c_inactive), 0);
-          
+         
           // nav_icon_right (Switches - Page 1)
           lv_obj_set_style_text_color(id(nav_icon_right), (page == 1 ? c_active : c_inactive), 0);
 
@@ -512,11 +492,11 @@ interval:
           lv_color_t c_white    = lv_color_hex(0xFFFFFF);
           lv_color_t c_icon_off = lv_color_hex(0xB4B8BF);
 
-          // TV
+          // LIGHT 1
           if (id(light_tv_state).state) {
             lv_obj_set_style_bg_color(id(row_tv), c_row_on, 0);
             lv_obj_set_style_bg_color(id(btn_tv), c_btn_on, 0);
-            lv_obj_set_style_text_color(id(icon_bulb_tv), c_row_on, 0); 
+            lv_obj_set_style_text_color(id(icon_bulb_tv), c_row_on, 0);
             lv_obj_set_style_text_color(id(lbl_tv_name), c_white, 0);
           } else {
             lv_obj_set_style_bg_color(id(row_tv), c_row_off, 0);
@@ -525,7 +505,7 @@ interval:
             lv_obj_set_style_text_color(id(lbl_tv_name), c_white, 0);
           }
 
-          // KANAPA
+          // LIGHT 2
           if (id(light_couch_state).state) {
              lv_obj_set_style_bg_color(id(row_couch), c_row_on, 0);
              lv_obj_set_style_bg_color(id(btn_couch), c_btn_on, 0);
@@ -537,15 +517,16 @@ interval:
              lv_obj_set_style_text_color(id(icon_bulb_couch), c_icon_off, 0);
              lv_obj_set_style_text_color(id(lbl_couch_name), c_white, 0);
           }
-          
+         
           lv_label_set_text(id(main_date), id(ha_time).now().strftime("%d.%m.%Y").c_str());
-          
+         
           if (id(sensor_temp_salon).has_state()) lv_label_set_text(id(label_temp_salon), str_sprintf("%.1f°C", id(sensor_temp_salon).state).c_str());
           if (id(sensor_hum_salon).has_state()) lv_label_set_text(id(label_hum_salon), str_sprintf("%.0f%%", id(sensor_hum_salon).state).c_str());
           if (id(sensor_temp_ext).has_state()) lv_label_set_text(id(label_temp_ext), str_sprintf("%.1f°C", id(sensor_temp_ext).state).c_str());
           lv_label_set_text(id(weather_icon_main), id(weather_icon_current).state.c_str());
 
           if (id(sensor_woda).has_state()) lv_label_set_text(id(val_water), str_sprintf("%.3f m³", id(sensor_woda).state).c_str());
+          if (id(sensor_woda_mc).has_state()) lv_label_set_text(id(val_water_mc), str_sprintf("%.3f m³", id(sensor_woda_mc).state).c_str());
 
           lv_label_set_text(id(label_day_0), id(day_name_0).state.c_str());
           lv_label_set_text(id(icon_day_0), id(icon_calculated_day_0).state.c_str());
@@ -579,7 +560,7 @@ lvgl:
   bg_color: c_bg_main
   displays: my_display
   touchscreens: my_touchscreen
-  
+ 
   on_idle:
     - timeout: 30s
       then:
@@ -592,7 +573,8 @@ lvgl:
                 return 0.15;
               }
               return 0.30;
-    
+   
+    # AUTO RETURN TO MOME PAGE
     - timeout: 60s
       then:
         - if:
@@ -617,10 +599,9 @@ lvgl:
             outline_width: 0
             pad_all: 0
             scrollbar_mode: "OFF"
-
+        # --- HEADER ICONS ---
         - label: {id: status_wifi, x: 280, y: 8, text_font: font_mdi_20, text_color: c_white, align: TOP_LEFT, text: "-"}
-        - label: {id: status_battery, x: 250, y: 8, text_font: font_mdi_20, text_color: c_white, align: TOP_LEFT, text: "-"}
-        
+       
         - obj:
             scrollable: false
             x: 10
@@ -636,7 +617,7 @@ lvgl:
             widgets:
               - label: {id: main_clock, align: CENTER, y: -12, text_font: font_roboto_34, text_color: c_white, text: "00:00"}
               - label: {id: main_date, align: CENTER, y: 18, text_font: font_roboto_14, text_color: c_white, text: "01.01.2024"}
-        
+       
         - obj:
             scrollable: false
             x: 10
@@ -652,7 +633,7 @@ lvgl:
             widgets:
               - label: {align: TOP_MID, y: 10, text: "Temperatura", text_font: font_roboto_12, text_color: c_white}
               - label: {id: label_temp_salon, align: CENTER, y: 10, text_font: font_roboto_34, text_color: c_white, text: "-"}
-        
+       
         - obj:
             scrollable: false
             x: 165
@@ -668,7 +649,7 @@ lvgl:
             widgets:
               - label: {align: TOP_MID, y: 10, text: "Wilgotność", text_font: font_roboto_12, text_color: c_white}
               - label: {id: label_hum_salon, align: CENTER, y: 10, text_font: font_roboto_34, text_color: c_white, text: "-"}
-        
+       
         - obj:
             scrollable: false
             x: 10
@@ -685,7 +666,7 @@ lvgl:
               - label: {id: weather_icon_main, x: 35, y: 3, align: LEFT_MID, text_font: font_mdi_60, text_color: c_white, text: "\U000F0599"}
               - label: {x: 110, y: -18, align: LEFT_MID, text: "Temperatura Zewnętrzna", text_font: font_roboto_12, text_color: c_white}
               - label: {id: label_temp_ext, x: 110, y: 12, align: LEFT_MID, text_font: font_roboto_28, text_color: c_white, text: "-"}
-        
+       
         - obj:
             scrollable: false
             x: 10
@@ -780,9 +761,9 @@ lvgl:
             outline_width: 0
             pad_all: 0
             scrollbar_mode: "OFF"
+        # --- HEADER ICONS ---
         - label: {id: status_wifi_p1, x: 280, y: 8, text_font: font_mdi_20, text_color: c_white, align: TOP_LEFT, text: "-"}
-        - label: {id: status_battery_p1, x: 250, y: 8, text_font: font_mdi_20, text_color: c_white, align: TOP_LEFT, text: "-"}
-        
+       
         - obj:
             id: row_tv
             x: 10
@@ -907,8 +888,9 @@ lvgl:
             outline_width: 0
             pad_all: 0
             scrollbar_mode: "OFF"
+        # --- HEADER ICONS ---
         - label: {id: status_wifi_p2, x: 280, y: 8, text_font: font_mdi_20, text_color: c_white, align: TOP_LEFT, text: "-"}
-        - label: {id: status_battery_p2, x: 250, y: 8, text_font: font_mdi_20, text_color: c_white, align: TOP_LEFT, text: "-"}
+
         - obj:
             id: table_container
             x: 10
@@ -920,16 +902,22 @@ lvgl:
             border_width: 0
             outline_width: 0
             pad_all: 0
+            ##################### MEASUREMENT DATA ######################
+            #####  to each text line and line add 20px on "y" axis  #####
+            #############################################################
             widgets:
               - label: {x: 10, y: 20, text: "Wodomierz", text_font: font_roboto_14, text_color: c_white, align: TOP_LEFT}
               - label: {id: val_water, x: -10, y: 20, text: "--- m³", text_font: font_roboto_700_14, text_color: c_white, align: TOP_RIGHT}
+              - label: {x: 10, y: 40, text: "Zużycie miesięczne", text_font: font_roboto_14, text_color: c_white, align: TOP_LEFT}
+              - label: {id: val_water_mc, x: -10, y: 40, text: "--- m³", text_font: font_roboto_700_14, text_color: c_white, align: TOP_RIGHT}
               - line:
                   x: 40
-                  y: 45
+                  y: 65
                   points: ["0, 0", "220, 0"]
                   line_width: 1
                   line_color: c_line_sep
-
+                  
+  # FOOTER UI NAVIGATINO BUTTONS
   top_layer:
     widgets:
       - obj:
@@ -949,6 +937,7 @@ lvgl:
             flex_align_main: SPACE_EVENLY
             flex_align_cross: CENTER
           widgets:
+            # DATA BUTTON
             - button:
                 width: 80
                 height: 50
@@ -962,7 +951,8 @@ lvgl:
                   - lvgl.page.show: page_2
                 widgets:
                   - label: {id: nav_icon_left, align: CENTER, y: 10, text: "\U000F1C2E", text_font: font_mdi_32, text_color: c_white}
-            
+           
+            # ŚHOME BUTTON
             - button:
                 width: 80
                 height: 50
@@ -976,7 +966,8 @@ lvgl:
                   - lvgl.page.show: page_0
                 widgets:
                   - label: {id: nav_icon_center, align: CENTER, y: 10, text: "\U000F02DC", text_font: font_mdi_32, text_color: c_white}
-            
+           
+            # BUTTONS BUTTON
             - button:
                 width: 80
                 height: 50
@@ -990,4 +981,3 @@ lvgl:
                   - lvgl.page.show: page_1
                 widgets:
                   - label: {id: nav_icon_right, align: CENTER, y: 10, text: "\U000F1B50", text_font: font_mdi_32, text_color: c_white}
-
