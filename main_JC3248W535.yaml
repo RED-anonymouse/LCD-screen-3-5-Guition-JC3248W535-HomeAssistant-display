@@ -92,7 +92,7 @@ sensor:
     entity_id: sensor.zuzycie_wody_miesiecznie
     internal: true
 
-  # FORECAST
+  # --- FORECAST ---
   - platform: homeassistant
     id: temp_day_0
     entity_id: sensor.weather_forecast_dom_high_temp_0
@@ -132,6 +132,7 @@ sensor:
     id: uptime_sensor
     name: "Uptime"
 
+# --- LIGHT SWITCH ---
 binary_sensor:
   - platform: homeassistant
     id: light_tv_state
@@ -140,6 +141,7 @@ binary_sensor:
     id: light_couch_state
     entity_id: light.salon_lampka_przy_kanapie
 
+# --- FORACAST DAYS NAME ---
 text_sensor:
   - platform: template
     id: day_name_0
@@ -176,6 +178,7 @@ text_sensor:
       char buf[16]; future.strftime(buf, sizeof(buf), "%a"); return {buf};
     update_interval: 60s
 
+  # --- FORECAST DAY CONDITION ---
   - platform: homeassistant
     id: condition_day_0
     entity_id: sensor.weather_forecast_dom_condition_0
@@ -192,6 +195,7 @@ text_sensor:
     id: condition_day_4
     entity_id: sensor.weather_forecast_dom_condition_4
 
+  # --- FORECAST DAY ICONS ---
   - platform: template
     id: icon_calculated_day_0
     update_interval: 10s
@@ -553,7 +557,10 @@ interval:
           if (id(temp_day_4).has_state() && id(temp_low_day_4).has_state()) {
              lv_label_set_text(id(temp_day_4_label), str_sprintf("%.0f/%.0f", id(temp_day_4).state, id(temp_low_day_4).state).c_str());
           }
-
+          
+# ============================================================================
+# UI STYLING
+# ============================================================================
 lvgl:
   id: my_lvgl
   log_level: WARN
@@ -574,7 +581,7 @@ lvgl:
               }
               return 0.30;
    
-    # AUTO RETURN TO MOME PAGE
+    # --- AUTO RETURN TO MOME PAGE ---
     - timeout: 60s
       then:
         - if:
@@ -916,8 +923,9 @@ lvgl:
                   points: ["0, 0", "220, 0"]
                   line_width: 1
                   line_color: c_line_sep
-                  
+  # ============================================================================
   # FOOTER UI NAVIGATINO BUTTONS
+  # ============================================================================
   top_layer:
     widgets:
       - obj:
@@ -952,7 +960,7 @@ lvgl:
                 widgets:
                   - label: {id: nav_icon_left, align: CENTER, y: 10, text: "\U000F1C2E", text_font: font_mdi_32, text_color: c_white}
            
-            # ŚHOME BUTTON
+            # HOME BUTTON
             - button:
                 width: 80
                 height: 50
@@ -981,3 +989,4 @@ lvgl:
                   - lvgl.page.show: page_1
                 widgets:
                   - label: {id: nav_icon_right, align: CENTER, y: 10, text: "\U000F1B50", text_font: font_mdi_32, text_color: c_white}
+
