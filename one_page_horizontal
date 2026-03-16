@@ -1,0 +1,687 @@
+esphome:
+  name: lcd-garaz
+  friendly_name: "LCD Garaż"
+  min_version: 2024.11.0
+  project:
+    name: "garaz.lcd-garaz"
+    version: "1.0.0"
+
+  on_boot:
+    priority: 600
+    then:
+      - light.turn_on: display_backlight
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  power_save_mode: none
+
+api:
+  encryption:
+    key: "N2ZmNGExY2E3YjM0NmU1ZjhjOTBhMWIyYzNkNGU1ZjY="
+
+logger:
+  level: WARN
+
+ota:
+  - platform: esphome
+
+esp32:
+  variant: esp32s3
+  flash_size: 16MB
+  framework:
+    type: esp-idf
+    advanced:
+      execute_from_psram: true
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+time:
+  - platform: homeassistant
+    id: ha_time
+    on_time:
+      # Tryb nocny - 30% o 23:00
+      - seconds: 0
+        minutes: 0
+        hours: 23
+        then:
+          - light.turn_on:
+              id: display_backlight
+              brightness: 30%
+              transition_length: 5s
+      # Tryb dzienny - 50% o 07:00
+      - seconds: 0
+        minutes: 0
+        hours: 7
+        then:
+          - light.turn_on:
+              id: display_backlight
+              brightness: 50%
+              transition_length: 5s
+
+# ============================================================================
+# SENSORS & ENTITIES
+# ============================================================================
+sensor:
+  - platform: wifi_signal
+    id: wifi_signal_dbm
+    name: "WiFi Signal"
+    update_interval: 10s
+
+  - platform: homeassistant
+    id: sensor_temp_ext
+    entity_id: sensor.temperatura_zewnetrzna_temperature
+
+  - platform: homeassistant
+    id: sensor_hum_ext
+    entity_id: sensor.temperatura_zewnetrzna_humidity
+
+  - platform: homeassistant
+    id: fan_speed_level
+    entity_id: light.wentylator_garaz_2
+    attribute: brightness
+    filters:
+      - multiply: 0.39215686
+
+binary_sensor:
+  - platform: homeassistant
+    id: fan_power_state
+    entity_id: light.wentylator_garaz_2
+
+  - platform: homeassistant
+    id: garage_door_state
+    entity_id: binary_sensor.0x206ef1fffe045d6c_dhcp_enabled
+
+  - platform: homeassistant
+    id: gate_state
+    entity_id: switch.brama_wjazdowa
+
+  - platform: homeassistant
+    id: smoke_alarm_state
+    entity_id: switch.czytnik_dymu_garaz_silence
+
+text_sensor:
+  - platform: homeassistant
+    id: weather_condition
+    entity_id: weather.forecast_dom
+ 
+  - platform: template
+    id: weather_icon_current
+    update_interval: 60s
+    lambda: |-
+      if (!id(weather_condition).has_state()) return {"\U000F0599"};
+      std::string s = id(weather_condition).state;
+      if (s == "clear-night" || s == "Clear-night") return {"\U000F0594"};
+      if (s == "cloudy" || s == "Cloudy") return {"\U000F0590"};
+      if (s == "partlycloudy" || s == "Partlycloudy") return {"\U000F0595"};
+      if (s == "sunny" || s == "Sunny") return {"\U000F0599"};
+      if (s == "rainy" || s == "Rainy") return {"\U000F0597"};
+      if (s == "snowy" || s == "Snowy") return {"\U000F0598"};
+      if (s == "fog" || s == "Fog") return {"\U000F0591"};
+      return {"\U000F0599"};
+
+# ============================================================================
+# HARDWARE
+# ============================================================================
+spi:
+  - id: qspi_bus
+    type: quad
+    clk_pin: GPIO47
+    data_pins: [21, 48, 40, 39]
+
+i2c:
+  - id: bus_a
+    sda: GPIO4
+    scl: GPIO8
+    scan: true
+
+output:
+  - platform: ledc
+    pin: GPIO1
+    id: gpio_backlight_pwm
+    frequency: 1200Hz
+
+light:
+  - platform: monochromatic
+    output: gpio_backlight_pwm
+    name: Display Backlight
+    id: display_backlight
+    restore_mode: ALWAYS_ON
+
+touchscreen:
+  - platform: axs15231
+    id: my_touchscreen
+    i2c_id: bus_a
+    transform:
+      swap_xy: false
+      mirror_x: false
+      mirror_y: false
+    on_touch:
+      - light.turn_on:
+          id: display_backlight
+          brightness: 100%
+          transition_length: 0.2s
+
+display:
+  - id: my_display
+    platform: qspi_dbi
+    spi_id: qspi_bus
+    dimensions:
+      height: 320
+      width: 480
+      offset_height: 0
+      offset_width: 0
+    model: CUSTOM
+    data_rate: 40MHz
+    cs_pin:
+      number: 45
+      ignore_strapping_warning: true
+    draw_from_origin: true
+    update_interval: 5s
+    auto_clear_enabled: false
+
+# ============================================================================
+# ASSETS (IMAGES, FONTS, COLORS)
+# ============================================================================
+image:
+  - file: "bg_slider.png"
+    id: img_slider_bg
+    type: RGB
+    transparency: alpha_channel
+
+font:
+  - file: materialdesignicons-webfont.ttf
+    id: font_mdi_80
+    size: 80
+    glyphs: ["\U000F0594", "\U000F0590", "\U000F0591", "\U000F0595", "\U000F0599", "\U000F0597", "\U000F0598"]
+
+  - file: materialdesignicons-webfont.ttf
+    id: font_mdi_20
+    size: 20
+    glyphs: 
+      - "\U000F05A9" # WiFi connected
+      - "\U000F1534" # WiFi disconnected
+      - "\U000F02FD" # Wentylator
+      - "\U000F0425" # Power
+      - "\U000F0374" # Minus
+      - "\U000F0415" # Plus
+      - "\U000F0A09" # Brama garażowa
+      - "\U000F0299" # Brama wjazdowa (gate)
+
+  - file: materialdesignicons-webfont.ttf
+    id: font_mdi_15
+    size: 15
+    glyphs: ["\U000F058E", "\U000F050F"]
+
+  - file:
+      type: gfonts
+      family: Roboto
+      weight: 700
+    id: font_roboto_700_40
+    size: 40
+    glyphs: '0123456789.:%°C -'
+
+  - file:
+      type: gfonts
+      family: Roboto
+      weight: 700
+    id: font_roboto_700_22
+    size: 22
+    glyphs: '0123456789%'
+
+  - file: "gfonts://Roboto"
+    id: font_roboto_20
+    size: 20
+    glyphs: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZĄĆĘŁŃÓŚŹŻąćęłńóśźż '
+
+  - file: "gfonts://Roboto"
+    id: font_roboto_14
+    size: 14
+    glyphs: ' !"#$%&''()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~ĄĆĘŁŃÓŚŹŻąćęłńóśźż°'
+
+color:
+  - id: c_bg_main
+    hex: "042e42"
+  - id: c_bg_card
+    hex: "1e3f5a"
+  - id: c_white
+    hex: "FFFFFF"
+  - id: c_red
+    hex: "FF0000"
+  - id: c_blue_active
+    hex: "009fe3"
+
+# ============================================================================
+# LOGIC & UPDATE INTERVAL
+# ============================================================================
+interval:
+  - interval: 1s
+    then:
+      - lambda: |-
+          if (id(ha_time).now().is_valid()) {
+            lv_label_set_text(id(main_clock), id(ha_time).now().strftime("%H:%M").c_str());
+            lv_label_set_text(id(main_date), id(ha_time).now().strftime("%d.%m.%Y").c_str());
+          }
+
+  - interval: 0.5s
+    then:
+      - lambda: |-
+          // --- WIFI ---
+          if (id(wifi_signal_dbm).has_state() && id(wifi_signal_dbm).state > -100) {
+            lv_obj_set_style_text_color(id(status_wifi), lv_color_hex(0xFFFFFF), 0);
+            lv_label_set_text(id(status_wifi), "\U000F05A9");
+          } else {
+            lv_obj_set_style_text_color(id(status_wifi), lv_color_hex(0xFF0000), 0);
+            lv_label_set_text(id(status_wifi), "\U000F1534");
+          }
+
+          // --- POGODA & TEMPERATURY ---
+          lv_label_set_text(id(weather_icon_main), id(weather_icon_current).state.c_str());
+
+          if (id(sensor_temp_ext).has_state()) {
+            lv_label_set_text(id(label_temp_ext), str_sprintf("%.1f °C", id(sensor_temp_ext).state).c_str());
+            lv_label_set_text(id(val_temp_ext), str_sprintf("%.1f °C", id(sensor_temp_ext).state).c_str());
+          }
+          if (id(sensor_hum_ext).has_state()) {
+            lv_label_set_text(id(val_hum_ext), str_sprintf("%.0f %%", id(sensor_hum_ext).state).c_str());
+          }
+
+          // --- LOGIKA WENTYLATORA ---
+          if (id(fan_power_state).has_state() && id(fan_power_state).state) {
+            lv_obj_set_style_text_color(id(icon_fan), lv_color_hex(0x0B73C6), 0);
+            lv_obj_set_style_text_color(id(icon_fan_power), lv_color_hex(0x0B73C6), 0);
+            
+            if (id(fan_speed_level).has_state()) {
+              int speed = round(id(fan_speed_level).state);
+              lv_label_set_text(id(val_fan_speed), str_sprintf("%d%%", speed).c_str());
+              
+              if (!(lv_obj_get_state(id(slider_fan)) & LV_STATE_PRESSED)) {
+                lv_slider_set_value(id(slider_fan), speed, LV_ANIM_OFF);
+              }
+            }
+          } else {
+            lv_obj_set_style_text_color(id(icon_fan), lv_color_hex(0xFFFFFF), 0);
+            lv_obj_set_style_text_color(id(icon_fan_power), lv_color_hex(0xFFFFFF), 0);
+            lv_label_set_text(id(val_fan_speed), "Wył.");
+            
+            if (!(lv_obj_get_state(id(slider_fan)) & LV_STATE_PRESSED)) {
+              lv_slider_set_value(id(slider_fan), 0, LV_ANIM_OFF);
+            }
+          }
+
+          // --- LOGIKA BRAM (ZMIANA KOLORU TŁA) ---
+          lv_color_t color_card = lv_color_hex(0x1e3f5a);
+          lv_color_t color_active = lv_color_hex(0x009fe3);
+
+          if (id(garage_door_state).has_state() && id(garage_door_state).state) {
+            lv_obj_set_style_bg_color(id(btn_garage), color_active, 0);
+          } else {
+            lv_obj_set_style_bg_color(id(btn_garage), color_card, 0);
+          }
+
+          if (id(gate_state).has_state() && id(gate_state).state) {
+            lv_obj_set_style_bg_color(id(btn_gate), color_active, 0);
+          } else {
+            lv_obj_set_style_bg_color(id(btn_gate), color_card, 0);
+          }
+          // --- LOGIKA ALARMU DYMU (ZMIANA KOLORU TŁA NA CZERWONY) ---
+          lv_color_t color_red_active = lv_color_hex(0xd11300);
+
+          if (id(smoke_alarm_state).has_state() && id(smoke_alarm_state).state) {
+            lv_obj_set_style_bg_color(id(btn_smoke), color_red_active, 0);
+          } else {
+            lv_obj_set_style_bg_color(id(btn_smoke), color_card, 0);
+          }
+
+# ============================================================================
+# UI STYLING (LVGL)
+# ============================================================================
+lvgl:
+  id: my_lvgl
+  log_level: WARN
+  bg_color: c_bg_main
+  displays: my_display
+  touchscreens: my_touchscreen
+
+  on_idle:
+    - timeout: 30s
+      then:
+        - light.turn_on:
+            id: display_backlight
+            transition_length: 1s
+            brightness: !lambda |-
+              auto time = id(ha_time).now();
+              // Sprawdzamy czy jest między 23:00 a 7:00
+              if (time.is_valid() && (time.hour >= 23 || time.hour < 7)) {
+                return 0.30;
+              }
+              return 0.50;
+
+  pages:
+    - id: page_0
+      widgets:
+        - obj:
+            scrollable: false
+            x: 0
+            y: 0
+            width: 480
+            height: 320
+            bg_color: c_bg_main
+            bg_opa: COVER
+            border_width: 0
+            outline_width: 0
+            pad_all: 0
+
+        # IKONA WIFI
+        - label:
+            id: status_wifi
+            x: 450
+            y: 5
+            text_font: font_mdi_20
+            text_color: c_white
+            text: "-"
+
+        # ==========================================
+        # KONTENER 1 (GÓRNY - POGODA)
+        # ==========================================
+        - obj:
+            id: container_top
+            scrollable: false
+            x: 10
+            y: 30
+            width: 460
+            height: 120
+            bg_color: c_bg_card
+            radius: 20
+            border_width: 0
+            outline_width: 0
+            widgets:
+              - label:
+                  id: weather_icon_main
+                  x: 20
+                  align: LEFT_MID
+                  text_font: font_mdi_80
+                  text_color: c_white
+                  text: "\U000F0599"
+
+              - label:
+                  id: label_temp_ext
+                  x: 130
+                  y: 30
+                  text_font: font_roboto_700_40
+                  text_color: c_white
+                  text: "- °C"
+
+              - obj:
+                  x: 130
+                  y: 65
+                  width: 120
+                  height: 20
+                  bg_opa: 0%
+                  border_width: 0
+                  layout:
+                    type: flex
+                    flex_flow: ROW
+                    flex_align_main: START
+                    flex_align_cross: CENTER
+                    pad_column: 10
+                  widgets:
+                    - label: {id: icon_hum_ext, text: "\U000F058E", text_font: font_mdi_15, text_color: c_white}
+                    - label: {id: val_hum_ext, text: "- %", text_font: font_roboto_14, text_color: c_white}
+                    - label: {id: icon_temp_ext, text: "\U000F050F", text_font: font_mdi_15, text_color: c_white}
+                    - label: {id: val_temp_ext, text: "- °C", text_font: font_roboto_14, text_color: c_white}
+
+              - line:
+                  x: 250
+                  y: 10
+                  points: ["0, 0", "0, 100"]
+                  line_width: 1
+                  line_color: c_white
+
+              - label:
+                  id: main_clock
+                  x: 357
+                  y: 28
+                  text_font: font_roboto_700_40
+                  text_color: c_white
+                  text: "00:00"
+
+              - label:
+                  id: main_date
+                  x: 357
+                  y: 88
+                  text_font: font_roboto_14
+                  text_color: c_white
+                  text: "01.01.2024"
+
+        # ==========================================
+        # KONTENER 2 (ŚRODKOWY - WENTYLATOR)
+        # ==========================================
+        - obj:
+            id: container_middle
+            scrollable: false
+            x: 10
+            y: 160
+            width: 460
+            height: 90
+            bg_color: c_bg_card
+            radius: 20
+            border_width: 0
+            outline_width: 0
+            widgets:
+              - obj:
+                  x: 97
+                  y: 10
+                  width: 265
+                  height: 30
+                  bg_color: c_bg_main
+                  radius: 15
+                  border_width: 0
+                  outline_width: 0
+                  layout:
+                    type: flex
+                    flex_flow: ROW
+                    flex_align_main: SPACE_EVENLY
+                    flex_align_cross: CENTER
+                  widgets:
+                    - label: {id: icon_fan, text: "\U000F02FD", text_font: font_mdi_20, text_color: c_white}
+                    - label: {text: "Wentylator", text_font: font_roboto_20, text_color: c_white}
+                    - label: {id: val_fan_speed, text: "0%", text_font: font_roboto_700_22, text_color: c_white}
+
+              - button:
+                  id: btn_fan_power
+                  x: 403
+                  y: 10
+                  width: 30
+                  height: 30
+                  bg_color: c_bg_main
+                  radius: 15
+                  border_width: 0
+                  shadow_width: 0
+                  on_click:
+                    - homeassistant.service:
+                        service: light.toggle
+                        data:
+                          entity_id: light.wentylator_garaz_2
+                  widgets:
+                    - label: {id: icon_fan_power, align: CENTER, text: "\U000F0425", text_font: font_mdi_20, text_color: c_white}
+
+              - button:
+                  id: btn_fan_minus
+                  x: 10
+                  y: 50
+                  width: 30
+                  height: 30
+                  bg_color: c_bg_main
+                  radius: 15
+                  border_width: 0
+                  shadow_width: 0
+                  on_click:
+                    - homeassistant.service:
+                        service: light.turn_on
+                        data:
+                          entity_id: light.wentylator_garaz_2
+                          brightness_step_pct: "-10"
+                  widgets:
+                    - label: {align: CENTER, text: "\U000F0374", text_font: font_mdi_20, text_color: c_white}
+
+              - button:
+                  id: btn_fan_plus
+                  x: 420
+                  y: 50
+                  width: 30
+                  height: 30
+                  bg_color: c_bg_main
+                  radius: 15
+                  border_width: 0
+                  shadow_width: 0
+                  on_click:
+                    - homeassistant.service:
+                        service: light.turn_on
+                        data:
+                          entity_id: light.wentylator_garaz_2
+                          brightness_step_pct: "10"
+                  widgets:
+                    - label: {align: CENTER, text: "\U000F0415", text_font: font_mdi_20, text_color: c_white}
+
+              - image:
+                  src: img_slider_bg
+                  x: 50
+                  y: 57
+                  
+              - slider:
+                  id: slider_fan
+                  x: 50
+                  y: 50
+                  width: 360
+                  height: 30
+                  min_value: 0
+                  max_value: 100
+                  value: 0
+                  bg_opa: 0%
+                  indicator:
+                    bg_opa: 0%
+                  knob:
+                    bg_color: c_white
+                    radius: 0
+                    width: 2
+                    height: 30
+                  on_value:
+                    - homeassistant.service:
+                        service: light.turn_on
+                        data:
+                          entity_id: light.wentylator_garaz_2
+                        data_template:
+                          brightness_pct: '{{ my_brightness | int }}'
+                        variables:
+                          my_brightness: 'return x;'
+
+        # ==========================================
+        # KONTENER 3 (DOLNY LEWY - BRAMA GARAŻOWA)
+        # ==========================================
+        - button:
+            id: btn_garage
+            x: 10
+            y: 260
+            width: 145
+            height: 50
+            bg_color: c_bg_card
+            radius: 20
+            border_width: 0
+            shadow_width: 0
+            on_click:
+              - homeassistant.service:
+                  service: switch.toggle
+                  data:
+                    entity_id: switch.0x206ef1fffe045d6c
+            widgets:
+              - obj:
+                  x: 10
+                  align: LEFT_MID
+                  width: 30
+                  height: 30
+                  bg_color: c_bg_main
+                  radius: 15
+                  border_width: 0
+                  widgets:
+                    - label: {align: CENTER, text: "\U000F0A09", text_font: font_mdi_20, text_color: c_white}
+              - label:
+                  x: 45
+                  align: LEFT_MID
+                  text: "B. garażowa"
+                  text_font: font_roboto_14
+                  text_color: c_white
+
+        # ==========================================
+        # KONTENER 4 (DOLNY ŚRODEK - BRAMA WJAZDOWA)
+        # ==========================================
+        - button:
+            id: btn_gate
+            x: 168
+            y: 260
+            width: 145
+            height: 50
+            bg_color: c_bg_card
+            radius: 20
+            border_width: 0
+            shadow_width: 0
+            on_click:
+              - homeassistant.service:
+                  service: switch.toggle
+                  data:
+                    entity_id: switch.brama_wjazdowa
+            widgets:
+              - obj:
+                  x: 10
+                  align: LEFT_MID
+                  width: 30
+                  height: 30
+                  bg_color: c_bg_main
+                  radius: 15
+                  border_width: 0
+                  widgets:
+                    - label: {align: CENTER, text: "\U000F0299", text_font: font_mdi_20, text_color: c_white}
+              - label:
+                  x: 45
+                  align: LEFT_MID
+                  text: "B. wjazdowa"
+                  text_font: font_roboto_14
+                  text_color: c_white
+
+        # ==========================================
+        # KONTENER 5 (DOLNY PRAWY - WYCISZANIE ALARMU)
+        # ==========================================
+        - button:
+            id: btn_smoke
+            x: 325
+            y: 260
+            width: 145
+            height: 50
+            bg_color: c_bg_card
+            radius: 20
+            border_width: 0
+            shadow_width: 0
+            on_click:
+              - homeassistant.service:
+                  service: switch.turn_on
+                  data:
+                    entity_id: switch.czytnik_dymu_garaz_silence
+            widgets:
+              - obj:
+                  x: 10
+                  align: LEFT_MID
+                  width: 30
+                  height: 30
+                  bg_color: c_bg_main
+                  radius: 15
+                  border_width: 0
+                  widgets:
+                    - label: {align: CENTER, text: "\U000F180B", text_font: font_mdi_20, text_color: c_white}
+              - label:
+                  x: 45
+                  align: LEFT_MID
+                  text: "Silence"
+                  text_font: font_roboto_14
+                  text_color: c_white
