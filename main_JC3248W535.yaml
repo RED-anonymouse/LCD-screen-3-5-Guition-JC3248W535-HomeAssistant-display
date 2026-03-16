@@ -1,6 +1,6 @@
 esphome:
-  name: lcd-salon
-  friendly_name: "LCD Salon"
+  name: esp-name #your device name
+  friendly_name: "friendly name" #your device friendly name
   min_version: 2024.11.0
   project:
     name: "salon.lcd-salon"
@@ -75,21 +75,43 @@ time:
 sensor:
   - platform: homeassistant
     id: sensor_temp_salon
-    entity_id: sensor.temperatura_salon_temperature
+    entity_id: sensor.temperatura_salon_temperature #room temperature sensor from HA
   - platform: homeassistant
     id: sensor_hum_salon
-    entity_id: sensor.temperatura_salon_humidity
+    entity_id: sensor.temperatura_salon_humidity #room humidity sensor from HA
   - platform: homeassistant
     id: sensor_temp_ext
-    entity_id: sensor.temperatura_zewnetrzna_temperature
+    entity_id: sensor.temperatura_zewnetrzna_temperature #outdoor temperature sensor from HA
   # WATER
   - platform: homeassistant
     id: sensor_woda
-    entity_id: sensor.wmbus_reader_v5_apator_water_meter_state
+    entity_id: sensor.wmbus_reader_v5_apator_water_meter_main #water meter sensor total
     internal: true
   - platform: homeassistant
     id: sensor_woda_mc
-    entity_id: sensor.zuzycie_wody_miesiecznie
+    entity_id: sensor.zuzycie_wody_miesiecznie #monthly waters sensor meter from HA
+    internal: true
+
+  # ENERGY
+  - platform: homeassistant
+    id: sensor_power_total
+    entity_id: sensor.wmbus_reader_v5_electricity_meter_energy_consumption #total energy meter sensor
+    internal: true
+  - platform: homeassistant
+    id: sensor_power_monthly
+    entity_id: sensor.miesieczny_pobor_pradu #monthly energy meter sensor
+    internal: true
+  - platform: homeassistant
+    id: sensor_power_daily
+    entity_id: sensor.dzienny_pobor_pradu #daily energy meter sensor
+    internal: true
+  - platform: homeassistant
+    id: sensor_PC_monthly
+    entity_id: sensor.pompa_ciepla_zuzycie_miesiecze #heatpump energy consumptione meter
+    internal: true
+  - platform: homeassistant
+    id: sensor_PC_daily
+    entity_id: sensor.pompa_ciepla_zuzycie_dzienne #daily heatpump energy sonsumption meter
     internal: true
 
   # --- FORECAST ---
@@ -136,7 +158,7 @@ sensor:
 binary_sensor:
   - platform: homeassistant
     id: light_tv_state
-    entity_id: light.salon_lampka_pod_telewizorem
+    entity_id: light.salon_lampka_pod_telewizorem 
   - platform: homeassistant
     id: light_couch_state
     entity_id: light.salon_lampka_przy_kanapie
@@ -367,7 +389,7 @@ font:
       weight: 700
     id: font_roboto_700_14
     size: 14
-    glyphs: '0123456789., m³'
+    glyphs: '0123456789., m³kWh'
   - file:
       type: gfonts
       family: Roboto
@@ -399,7 +421,7 @@ font:
       weight: 700
     id: font_roboto_700_16
     size: 16
-    glyphs: '0123456789., m³-'
+    glyphs: '0123456789., m³-kWh'
  
   - file: materialdesignicons-webfont.ttf
     id: font_mdi_60
@@ -440,9 +462,9 @@ color:
   - id: c_white
     hex: "FFFFFF"
   - id: c_bg_main
-    hex: "242E42"
+    hex: "042e42"
   - id: c_bg_card
-    hex: "2e3b53"
+    hex: "1e3f5a"
   - id: c_row_off
     hex: "2B374E"
   - id: c_row_on
@@ -531,6 +553,11 @@ interval:
 
           if (id(sensor_woda).has_state()) lv_label_set_text(id(val_water), str_sprintf("%.3f m³", id(sensor_woda).state).c_str());
           if (id(sensor_woda_mc).has_state()) lv_label_set_text(id(val_water_mc), str_sprintf("%.3f m³", id(sensor_woda_mc).state).c_str());
+          if (id(sensor_power_daily).has_state()) lv_label_set_text(id(val_power_daily), str_sprintf("%.2f kWh", id(sensor_power_daily).state).c_str());
+          if (id(sensor_power_monthly).has_state()) lv_label_set_text(id(val_power_monthly), str_sprintf("%.2f kWh", id(sensor_power_monthly).state).c_str());
+          if (id(sensor_PC_daily).has_state()) lv_label_set_text(id(val_pc_daily), str_sprintf("%.2f kWh", id(sensor_PC_daily).state).c_str());
+          if (id(sensor_PC_monthly).has_state()) lv_label_set_text(id(val_pc_monthly), str_sprintf("%.2f kWh", id(sensor_PC_monthly).state).c_str());
+          if (id(sensor_power_total).has_state()) lv_label_set_text(id(val_power_total), str_sprintf("%.0f kWh", id(sensor_power_total).state).c_str());
 
           lv_label_set_text(id(label_day_0), id(day_name_0).state.c_str());
           lv_label_set_text(id(icon_day_0), id(icon_calculated_day_0).state.c_str());
@@ -913,9 +940,10 @@ lvgl:
             #####  to each text line and line add 20px on "y" axis  #####
             #############################################################
             widgets:
+              # --- WODA ---
               - label: {x: 10, y: 20, text: "Wodomierz", text_font: font_roboto_14, text_color: c_white, align: TOP_LEFT}
               - label: {id: val_water, x: -10, y: 20, text: "--- m³", text_font: font_roboto_700_14, text_color: c_white, align: TOP_RIGHT}
-              - label: {x: 10, y: 40, text: "Zużycie miesięczne", text_font: font_roboto_14, text_color: c_white, align: TOP_LEFT}
+              - label: {x: 10, y: 40, text: "Zużycie wody (miesiąc)", text_font: font_roboto_14, text_color: c_white, align: TOP_LEFT}
               - label: {id: val_water_mc, x: -10, y: 40, text: "--- m³", text_font: font_roboto_700_14, text_color: c_white, align: TOP_RIGHT}
               - line:
                   x: 40
@@ -923,8 +951,30 @@ lvgl:
                   points: ["0, 0", "220, 0"]
                   line_width: 1
                   line_color: c_line_sep
+                  
+              # --- ENERGIA DOM ---
+              - label: {x: 10, y: 90, text: "Pobór energii (dzień)", text_font: font_roboto_14, text_color: c_white, align: TOP_LEFT}
+              - label: {id: val_power_daily, x: -10, y: 90, text: "--- kWh", text_font: font_roboto_700_14, text_color: c_white, align: TOP_RIGHT}
+              - label: {x: 10, y: 110, text: "Pobór energii (miesiąc)", text_font: font_roboto_14, text_color: c_white, align: TOP_LEFT}
+              - label: {id: val_power_monthly, x: -10, y: 110, text: "--- kWh", text_font: font_roboto_700_14, text_color: c_white, align: TOP_RIGHT}
+
+              # --- POMPA CIEPŁA ---
+              - label: {x: 10, y: 130, text: "Pompa ciepła (dzień)", text_font: font_roboto_14, text_color: c_white, align: TOP_LEFT}
+              - label: {id: val_pc_daily, x: -10, y: 130, text: "--- kWh", text_font: font_roboto_700_14, text_color: c_white, align: TOP_RIGHT}
+              - label: {x: 10, y: 150, text: "Pompa ciepła (miesiąc)", text_font: font_roboto_14, text_color: c_white, align: TOP_LEFT}
+              - label: {id: val_pc_monthly, x: -10, y: 150, text: "--- kWh", text_font: font_roboto_700_14, text_color: c_white, align: TOP_RIGHT}
+
+              # --- CAŁKOWITE ZUŻYCIE ---
+              - label: {x: 10, y: 170, text: "Całkowity pobór energii", text_font: font_roboto_14, text_color: c_white, align: TOP_LEFT}
+              - label: {id: val_power_total, x: -10, y: 170, text: "--- kWh", text_font: font_roboto_700_14, text_color: c_white, align: TOP_RIGHT}    
+              - line:
+                  x: 40
+                  y: 195
+                  points: ["0, 0", "220, 0"]
+                  line_width: 1
+                  line_color: c_line_sep          
   # ============================================================================
-  # FOOTER UI NAVIGATINO BUTTONS
+  # FOOTER UI NAVIGATION BUTTONS
   # ============================================================================
   top_layer:
     widgets:
@@ -989,5 +1039,3 @@ lvgl:
                   - lvgl.page.show: page_1
                 widgets:
                   - label: {id: nav_icon_right, align: CENTER, y: 10, text: "\U000F1B50", text_font: font_mdi_32, text_color: c_white}
-
-
